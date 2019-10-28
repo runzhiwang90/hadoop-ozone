@@ -45,7 +45,7 @@ be activated as part of the normal HDFS Datanode bootstrap.
 You also need to add the ozone-datanode-plugin jar file to the classpath:
 
 {{< highlight bash >}}
-export HADOOP_CLASSPATH=/opt/ozone/share/hadoop/ozoneplugin/hadoop-ozone-datanode-plugin.jar
+export HADOOP_CLASSPATH=/opt/ozone/share/ozone/lib/*.jar
 {{< /highlight >}}
 
 
@@ -62,7 +62,7 @@ Please check the log of the datanode whether the HDDS/Ozone plugin is started or
 not. Log of datanode should contain something like this:
 
 ```
-2018-09-17 16:19:24 INFO  HddsDatanodeService:158 - Started plug-in org.apache.hadoop.ozone.web.OzoneHddsDatanodeService@6f94fb9d
+2019-10-28 06:33:29 INFO  DataNode:981 - Started plug-in org.apache.hadoop.ozone.HddsDatanodeService@216e0771
 ```
 
 <div class="alert alert-warning" role="alert">
