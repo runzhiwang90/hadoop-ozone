@@ -93,13 +93,7 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-18.04
-    timeout-minutes: 90
-    needs:
-       - build
-       - rat
-       - checkstyle
-       - unit
-       - findbugs
+    timeout-minutes: 120
     steps:
         - uses: actions/checkout@master
         - uses: ./.github/buildenv
@@ -109,6 +103,9 @@ jobs:
         - run: sudo chown runner -R .
         - run: cd ./hadoop-ozone/dist/target/ozone-*-SNAPSHOT/ && mkdir .aws && sudo chown 1000 .aws 
         - run: ./hadoop-ozone/dev-support/checks/acceptance.sh
+#required in case of timeout, the remaining logs can be archived
+        - run: cp ./hadoop-ozone/dist/target/ozone-*-SNAPSHOT/compose/result/* target/acceptance/
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
