@@ -313,7 +313,6 @@ public final class Pipeline {
       this.state = pipeline.state;
       this.nodeStatus = pipeline.nodeStatus;
       this.nodesInOrder = pipeline.nodesInOrder.get();
-      this.leaderId = pipeline.getLeaderId();
     }
 
     public Builder setId(PipelineID id1) {

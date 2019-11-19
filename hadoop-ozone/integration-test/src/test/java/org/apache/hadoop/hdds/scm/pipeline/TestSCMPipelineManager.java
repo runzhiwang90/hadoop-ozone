@@ -34,11 +34,12 @@ import org.apache.hadoop.hdds.HddsConfigKeys;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.DatanodeDetails;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
+import org.apache.hadoop.hdds.protocol.proto.StorageContainerDatanodeProtocolProtos.PipelineReport;
+import org.apache.hadoop.hdds.protocol.proto.StorageContainerDatanodeProtocolProtos.PipelineReportsProto;
 import org.apache.hadoop.hdds.scm.container.ContainerID;
 import org.apache.hadoop.hdds.scm.container.MockNodeManager;
 import org.apache.hadoop.hdds.scm.safemode.SCMSafeModeManager;
-import org.apache.hadoop.hdds.scm.server.SCMDatanodeHeartbeatDispatcher
-    .PipelineReportFromDatanode;
+import org.apache.hadoop.hdds.scm.server.SCMDatanodeHeartbeatDispatcher.PipelineReportFromDatanode;
 import org.apache.hadoop.hdds.scm.TestUtils;
 import org.apache.hadoop.hdds.server.events.EventQueue;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
@@ -173,17 +174,18 @@ public class TestSCMPipelineManager {
     Assert
         .assertFalse(pipelineManager.getPipeline(pipeline.getId()).isOpen());
 
-    // pipeline is not healthy until all dns report
+    // get pipeline report from each dn in the pipeline
     PipelineReportHandler pipelineReportHandler =
         new PipelineReportHandler(scmSafeModeManager, pipelineManager, conf);
-    List<DatanodeDetails> nodes = pipeline.getNodes();
-    Assert.assertFalse(
-        pipelineManager.getPipeline(pipeline.getId()).isHealthy());
-    // get pipeline report from each dn in the pipeline
-    nodes.subList(0, 2).forEach(dn -> sendPipelineReport(dn, pipeline,
-        pipelineReportHandler, false, eventQueue));
-    sendPipelineReport(nodes.get(nodes.size() - 1), pipeline,
-        pipelineReportHandler, true, eventQueue);
+    for (DatanodeDetails dn: pipeline.getNodes()) {
+      PipelineReportFromDatanode pipelineReportFromDatanode =
+          TestUtils.getPipelineReportFromDatanode(dn, pipeline.getId());
+      // pipeline is not healthy until all dns report
+      Assert.assertFalse(
+          pipelineManager.getPipeline(pipeline.getId()).isHealthy());
+      pipelineReportHandler
+          .onMessage(pipelineReportFromDatanode, new EventQueue());
+    }
 
     // pipeline is healthy when all dns report
     Assert
@@ -195,11 +197,13 @@ public class TestSCMPipelineManager {
     // close the pipeline
     pipelineManager.finalizeAndDestroyPipeline(pipeline, false);
 
-    // pipeline report for destroyed pipeline should be ignored
-    nodes.subList(0, 2).forEach(dn -> sendPipelineReport(dn, pipeline,
-        pipelineReportHandler, false, eventQueue));
-    sendPipelineReport(nodes.get(nodes.size() - 1), pipeline,
-        pipelineReportHandler, true, eventQueue);
+    for (DatanodeDetails dn: pipeline.getNodes()) {
+      PipelineReportFromDatanode pipelineReportFromDatanode =
+          TestUtils.getPipelineReportFromDatanode(dn, pipeline.getId());
+      // pipeline report for destroyed pipeline should be ignored
+      pipelineReportHandler
+          .onMessage(pipelineReportFromDatanode, new EventQueue());
+    }
 
     try {
       pipelineManager.getPipeline(pipeline.getId());
@@ -267,7 +271,7 @@ public class TestSCMPipelineManager {
     numPipelineCreateFailed = getLongCounter(
         "NumPipelineCreationFailed", metrics);
     Assert.assertTrue(numPipelineCreateFailed == 0);
-    
+
     // clean up
     pipelineManager.close();
   }
@@ -354,16 +358,16 @@ public class TestSCMPipelineManager {
     List<DatanodeDetails> nodes = pipeline.getNodes();
     Assert.assertEquals(3, nodes.size());
     // Send report for all but no leader
-    nodes.forEach(dn -> sendPipelineReport(dn, pipeline, pipelineReportHandler,
-        false, eventQueue));
+    nodes.forEach(dn ->
+        sendPipelineReport(dn, pipeline, pipelineReportHandler, false));
 
     Assert.assertEquals(Pipeline.PipelineState.ALLOCATED,
         pipelineManager.getPipeline(pipeline.getId()).getPipelineState());
 
-    nodes.subList(0, 2).forEach(dn -> sendPipelineReport(dn, pipeline,
-        pipelineReportHandler, false, eventQueue));
+    nodes.subList(0, 2).forEach(dn ->
+        sendPipelineReport(dn, pipeline, pipelineReportHandler, false));
     sendPipelineReport(nodes.get(nodes.size() - 1), pipeline,
-        pipelineReportHandler, true, eventQueue);
+        pipelineReportHandler, true);
 
     Assert.assertEquals(Pipeline.PipelineState.OPEN,
         pipelineManager.getPipeline(pipeline.getId()).getPipelineState());
@@ -373,9 +377,16 @@ public class TestSCMPipelineManager {
 
   private void sendPipelineReport(DatanodeDetails dn,
       Pipeline pipeline, PipelineReportHandler pipelineReportHandler,
-      boolean isLeader, EventQueue eventQueue) {
-    PipelineReportFromDatanode report =
-        TestUtils.getPipelineReportFromDatanode(dn, pipeline.getId(), isLeader);
-    pipelineReportHandler.onMessage(report, eventQueue);
+      boolean isLeader) {
+
+    PipelineReportsProto.Builder reportProtoBuilder =
+        PipelineReportsProto.newBuilder();
+    PipelineReport.Builder reportBuilder = PipelineReport.newBuilder();
+    reportBuilder.setPipelineID(pipeline.getId().getProtobuf());
+    reportBuilder.setIsLeader(isLeader);
+
+    pipelineReportHandler.onMessage(new PipelineReportFromDatanode(dn,
+        reportProtoBuilder.addPipelineReport(
+            reportBuilder.build()).build()), new EventQueue());
   }
 }
