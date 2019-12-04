@@ -42,6 +42,7 @@ import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.container.common.impl.ContainerData;
 import org.apache.hadoop.ozone.container.common.impl.ContainerDataYaml;
 import org.apache.hadoop.ozone.container.common.impl.ContainerSet;
+import org.apache.ratis.thirdparty.com.google.protobuf.ByteString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -230,5 +231,60 @@ public final class ContainerUtils {
    */
   public static long getContainerID(File containerBaseDir) {
     return Long.parseLong(containerBaseDir.getName());
+  }
+
+  /**
+   * Remove binary data from request {@code msg}.  (May be incomplete, feel
+   * free to add any missing cleanups.)
+   */
+  public static ContainerCommandRequestProto processForDebug(
+      ContainerCommandRequestProto msg) {
+
+    if (msg == null) {
+      return null;
+    }
+
+    if (msg.hasWriteChunk() || msg.hasPutSmallFile()) {
+      ContainerCommandRequestProto.Builder builder = msg.toBuilder();
+      if (msg.hasWriteChunk()) {
+        builder.getWriteChunkBuilder().setData(ByteString.EMPTY)
+            .getChunkDataBuilder().getChecksumDataBuilder().clearChecksums();
+      }
+      if (msg.hasPutSmallFile()) {
+        builder.getPutSmallFileBuilder().setData(ByteString.EMPTY)
+            .getChunkInfoBuilder().getChecksumDataBuilder().clearChecksums();
+      }
+      return builder.build();
+    }
+
+    return msg;
+  }
+
+  /**
+   * Remove binary data from response {@code msg}.  (May be incomplete, feel
+   * free to add any missing cleanups.)
+   */
+  public static ContainerCommandResponseProto processForDebug(
+      ContainerCommandResponseProto msg) {
+
+    if (msg == null) {
+      return null;
+    }
+
+    if (msg.hasReadChunk() || msg.hasGetBlock()) {
+      ContainerCommandResponseProto.Builder builder = msg.toBuilder();
+      if (msg.hasReadChunk()) {
+        builder.getReadChunkBuilder().setData(ByteString.EMPTY)
+            .getChunkDataBuilder().getChecksumDataBuilder().clearChecksums();
+      }
+      if (msg.hasGetBlock()) {
+        builder.getGetBlockBuilder().getBlockDataBuilder()
+            .getChunksBuilderList().forEach(
+                b -> b.getChecksumDataBuilder().clearChecksums());
+      }
+      return builder.build();
+    }
+
+    return msg;
   }
 }

@@ -45,9 +45,13 @@ public class LoggerSource {
     this.level = level;
   }
 
+  public LoggerSource(Component component, Class<?> loggerClass, Level level) {
+    this(component, loggerClass.getCanonicalName(), level);
+  }
+
   public LoggerSource(Type componentType, Class<?> loggerClass,
       Level level) {
-    this(new Component(componentType), loggerClass.getCanonicalName(), level);
+    this(new Component(componentType), loggerClass, level);
   }
 
   public Component getComponent() {

@@ -26,40 +26,44 @@ import org.apache.hadoop.metrics2.MetricsInfo;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
-
-import com.google.protobuf.ProtocolMessageEnum;
+import org.apache.ratis.thirdparty.com.google.protobuf.ProtocolMessageEnum;
 
 /**
  * Metrics to count all the subtypes of a specific message.
  */
-public class ProtocolMessageMetrics implements MetricsSource {
+public final class ProtocolMessageMetrics implements MetricsSource {
 
   private String name;
 
   private String description;
 
-  private Map<ProtocolMessageEnum, AtomicLong> counters =
+  private Map<Object, AtomicLong> counters =
       new ConcurrentHashMap<>();
 
-  public static ProtocolMessageMetrics create(String name,
-      String description, ProtocolMessageEnum[] types) {
-    ProtocolMessageMetrics protocolMessageMetrics =
-        new ProtocolMessageMetrics(name, description,
-            types);
-    return protocolMessageMetrics;
+  public static ProtocolMessageMetrics create(String name, String description,
+      com.google.protobuf.ProtocolMessageEnum[] types) {
+    return new ProtocolMessageMetrics(name, description, types);
   }
 
-  public ProtocolMessageMetrics(String name, String description,
-      ProtocolMessageEnum[] values) {
+  public static ProtocolMessageMetrics create(String name, String description,
+      ProtocolMessageEnum[] types) {
+    return new ProtocolMessageMetrics(name, description, types);
+  }
+
+  private ProtocolMessageMetrics(String name, String description,
+      Object[] values) {
     this.name = name;
     this.description = description;
-    for (ProtocolMessageEnum value : values) {
+    for (Object value : values) {
       counters.put(value, new AtomicLong(0));
     }
   }
 
-  public void increment(ProtocolMessageEnum key) {
-    counters.get(key).incrementAndGet();
+  public void increment(Object key) {
+    AtomicLong counter = counters.get(key);
+    if (counter != null) {
+      counter.incrementAndGet();
+    }
   }
 
   public void register() {

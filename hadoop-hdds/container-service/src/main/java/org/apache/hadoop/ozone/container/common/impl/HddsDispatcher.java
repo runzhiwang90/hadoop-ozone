@@ -20,6 +20,7 @@ package org.apache.hadoop.ozone.container.common.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.protobuf.ServiceException;
 import org.apache.hadoop.hdds.HddsConfigKeys;
 import org.apache.hadoop.hdds.HddsUtils;
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos;
@@ -34,7 +35,7 @@ import org.apache.hadoop.hdds.scm.container.common.helpers
 import org.apache.hadoop.hdds.scm.container.common.helpers
     .StorageContainerException;
 import org.apache.hadoop.hdds.security.token.TokenVerifier;
-import org.apache.hadoop.hdds.tracing.TracingUtil;
+import org.apache.hadoop.hdds.server.OzoneProtocolMessageDispatcher;
 import org.apache.hadoop.ozone.audit.AuditAction;
 import org.apache.hadoop.ozone.audit.AuditEventStatus;
 import org.apache.hadoop.ozone.audit.AuditLogger;
@@ -64,7 +65,7 @@ import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result;
 import org.apache.hadoop.ozone.container.common.interfaces.ContainerDispatcher;
 
-import io.opentracing.Scope;
+import org.apache.hadoop.ozone.protocolPB.ProtocolMessageMetrics;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +87,7 @@ public class HddsDispatcher implements ContainerDispatcher, Auditor {
   static final Logger LOG = LoggerFactory.getLogger(HddsDispatcher.class);
   private static final AuditLogger AUDIT =
       new AuditLogger(AuditLoggerType.DNLOGGER);
+  private static final String PROTOCOL_NAME = "DatanodeContainerProtocol";
   private final Map<ContainerType, Handler> handlers;
   private final Configuration conf;
   private final ContainerSet containerSet;
@@ -96,6 +98,9 @@ public class HddsDispatcher implements ContainerDispatcher, Auditor {
   private ContainerMetrics metrics;
   private final TokenVerifier tokenVerifier;
   private final boolean isBlockTokenEnabled;
+  private final OzoneProtocolMessageDispatcher<ContainerCommandRequestProto,
+      ContainerCommandResponseProto> dispatcher;
+  private final ProtocolMessageMetrics protocolMessageMetrics;
 
   /**
    * Constructs an OzoneContainer that receives calls from
@@ -118,14 +123,21 @@ public class HddsDispatcher implements ContainerDispatcher, Auditor {
         HddsConfigKeys.HDDS_BLOCK_TOKEN_ENABLED,
         HddsConfigKeys.HDDS_BLOCK_TOKEN_ENABLED_DEFAULT);
     this.tokenVerifier = tokenVerifier;
+    protocolMessageMetrics = ProtocolMessageMetrics.create(PROTOCOL_NAME,
+        "Datanode Container protocol metrics", ContainerProtos.Type.values());
+    dispatcher = new OzoneProtocolMessageDispatcher<>(PROTOCOL_NAME,
+        protocolMessageMetrics, LOG,
+        ContainerUtils::processForDebug, ContainerUtils::processForDebug);
   }
 
   @Override
   public void init() {
+    protocolMessageMetrics.register();
   }
 
   @Override
   public void shutdown() {
+    protocolMessageMetrics.unregister();
   }
 
   /**
@@ -156,21 +168,20 @@ public class HddsDispatcher implements ContainerDispatcher, Auditor {
   @Override
   public ContainerCommandResponseProto dispatch(
       ContainerCommandRequestProto msg, DispatcherContext dispatcherContext) {
-    String spanName = "HddsDispatcher." + msg.getCmdType().name();
-    try (Scope scope = TracingUtil
-        .importAndCreateScope(spanName, msg.getTraceID())) {
-      return dispatchRequest(msg, dispatcherContext);
+    try {
+      return dispatcher.processRequest(msg,
+          m -> dispatchRequest(m, dispatcherContext),
+          msg.getCmdType(), msg.getTraceID());
+    } catch (ServiceException e) {
+      throw new IllegalStateException("dispatchRequest does not throw", e);
     }
   }
 
   @SuppressWarnings("methodlength")
-  private ContainerCommandResponseProto dispatchRequest(
+  @VisibleForTesting // for TestKeyValueHandler
+  public ContainerCommandResponseProto dispatchRequest(
       ContainerCommandRequestProto msg, DispatcherContext dispatcherContext) {
     Preconditions.checkNotNull(msg);
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Command {}, trace ID: {} ", msg.getCmdType().toString(),
-          msg.getTraceID());
-    }
 
     AuditAction action = ContainerCommandRequestPBHelper.getAuditAction(
         msg.getCmdType());
@@ -640,4 +651,5 @@ public class HddsDispatcher implements ContainerDispatcher, Auditor {
     READ,
     WRITE
   }
+
 }

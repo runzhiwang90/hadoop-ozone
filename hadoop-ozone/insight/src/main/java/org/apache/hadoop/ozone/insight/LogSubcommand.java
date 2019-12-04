@@ -66,6 +66,8 @@ public class LogSubcommand extends BaseInsightSubCommand
       + "the output (eg. -f datanode=_1234_datanode_id)")
   private Map<String, String> filters;
 
+  private static final Pattern PATTERN = Pattern.compile("<json>(.*)</json>");
+
   @Override
   public Void call() {
     OzoneConfiguration conf =
@@ -145,8 +147,7 @@ public class LogSubcommand extends BaseInsightSubCommand
   }
 
   public String processLogLine(String line) {
-    Pattern p = Pattern.compile("<json>(.*)</json>");
-    Matcher m = p.matcher(line);
+    Matcher m = PATTERN.matcher(line);
     StringBuffer sb = new StringBuffer();
     while (m.find()) {
       m.appendReplacement(sb, "\n" + m.group(1).replaceAll("\\\\n", "\n"));

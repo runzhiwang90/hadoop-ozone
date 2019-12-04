@@ -32,7 +32,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -69,7 +68,8 @@ public class TestSCMBlockProtocolServer {
     }
     server = scm.getBlockProtocolServer();
     service = new ScmBlockLocationProtocolServerSideTranslatorPB(server,
-        Mockito.mock(ProtocolMessageMetrics.class));
+        ProtocolMessageMetrics.create("any", "other",
+            ScmBlockLocationProtocolProtos.Type.values()));
   }
 
   @After
