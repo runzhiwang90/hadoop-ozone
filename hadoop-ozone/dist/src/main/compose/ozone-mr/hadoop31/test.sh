@@ -28,7 +28,7 @@ execute_robot_test scm createmrenv.robot
 
 #rm is the container name (resource manager) and not the rm command
 execute_command_in_container rm sudo yum install -y python2-pip
-execute_command_in_container rm sudo pip install robotframework
+execute_command_in_container rm sudo pip2 install robotframework
 
 # reinitialize the directories to use
 export OZONE_DIR=/opt/ozone
