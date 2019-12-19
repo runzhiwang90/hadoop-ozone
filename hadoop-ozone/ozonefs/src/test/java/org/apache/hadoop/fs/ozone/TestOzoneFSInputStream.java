@@ -152,4 +152,17 @@ public class TestOzoneFSInputStream {
       Assert.assertArrayEquals(value, buffer.array());
     }
   }
+
+  @Test
+  public void testHasCapability() throws IOException {
+    try (OzoneFSInputStream inputStream =
+             new OzoneFSInputStream(fs.open(filePath))) {
+      /*TODO: The same as implementation of hasCapability,
+       *  update this string to READBYTEBUFFER when
+       *  dependency version of Hadoop is 3.3.0 or later.
+       */
+      String capability = "in:readbytebuffer";
+      Assert.assertTrue(inputStream.hasCapability(capability));
+    }
+  }
 }
