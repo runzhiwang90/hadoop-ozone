@@ -59,6 +59,7 @@ jobs:
           with:
              args: ./hadoop-ozone/dev-support/checks/unit.sh
         - uses: ./.github/buildenv
+          if: github.repository == 'apache/hadoop-ozone'
           with:
             args: ./hadoop-ozone/dev-support/checks/sonar.sh
           env:
@@ -98,12 +99,6 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-18.04
-    needs:
-       - build
-       - rat
-       - checkstyle
-       - unit
-       - findbugs
     steps:
         - uses: actions/checkout@master
         - uses: ./.github/buildenv

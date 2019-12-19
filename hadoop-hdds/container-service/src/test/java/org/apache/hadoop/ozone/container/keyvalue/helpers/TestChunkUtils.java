@@ -17,16 +17,6 @@
  */
 package org.apache.hadoop.ozone.container.keyvalue.helpers;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.ozone.container.common.helpers.ChunkInfo;
-import org.apache.hadoop.ozone.container.common.volume.VolumeIOStats;
-import org.apache.hadoop.test.GenericTestUtils;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -43,9 +33,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.hdds.scm.container.common.helpers.StorageContainerException;
+import org.apache.hadoop.ozone.common.ChunkBuffer;
+import org.apache.hadoop.ozone.container.common.helpers.ChunkInfo;
+import org.apache.hadoop.ozone.container.common.volume.VolumeIOStats;
+import org.apache.hadoop.test.GenericTestUtils;
+
+import org.apache.commons.io.FileUtils;
+import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNABLE_TO_FIND_CHUNK;
+import org.junit.Assert;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests for {@link ChunkUtils}.
@@ -61,11 +64,11 @@ public class TestChunkUtils {
   public void concurrentReadOfSameFile() throws Exception {
     String s = "Hello World";
     byte[] array = s.getBytes();
-    ByteBuffer data = ByteBuffer.wrap(array);
+    ChunkBuffer data = ChunkBuffer.wrap(ByteBuffer.wrap(array));
     Path tempFile = Files.createTempFile(PREFIX, "concurrent");
     try {
       ChunkInfo chunkInfo = new ChunkInfo(tempFile.toString(),
-          0, data.capacity());
+          0, data.limit());
       File file = tempFile.toFile();
       VolumeIOStats stats = new VolumeIOStats();
       ChunkUtils.writeData(file, chunkInfo, data, stats, true);
@@ -76,7 +79,7 @@ public class TestChunkUtils {
       AtomicBoolean failed = new AtomicBoolean();
       for (int i = 0; i < threads; i++) {
         final int threadNumber = i;
-        executor.submit(() -> {
+        executor.execute(() -> {
           try {
             ByteBuffer readBuffer = ChunkUtils.readData(file, chunkInfo, stats);
             LOG.info("Read data ({}): {}", threadNumber,
@@ -118,7 +121,7 @@ public class TestChunkUtils {
       for (int i = 0; i < threads; i++) {
         Path path = Files.createTempFile(PREFIX, String.valueOf(i));
         paths.add(path);
-        executor.submit(() -> {
+        executor.execute(() -> {
           ChunkUtils.processFileExclusively(path, () -> {
             try {
               Thread.sleep(perThreadWait);
@@ -147,11 +150,11 @@ public class TestChunkUtils {
   public void serialRead() throws Exception {
     String s = "Hello World";
     byte[] array = s.getBytes();
-    ByteBuffer data = ByteBuffer.wrap(array);
+    ChunkBuffer data = ChunkBuffer.wrap(ByteBuffer.wrap(array));
     Path tempFile = Files.createTempFile(PREFIX, "serial");
     try {
       ChunkInfo chunkInfo = new ChunkInfo(tempFile.toString(),
-          0, data.capacity());
+          0, data.limit());
       File file = tempFile.toFile();
       VolumeIOStats stats = new VolumeIOStats();
       ChunkUtils.writeData(file, chunkInfo, data, stats, true);
@@ -178,6 +181,19 @@ public class TestChunkUtils {
     Assert.assertFalse(
         ChunkUtils.validateChunkForOverwrite(tempFile.toFile(),
             new ChunkInfo("chunk", 5, 5)));
+  }
+
+  @Test
+  public void readMissingFile() throws Exception {
+    try {
+      ChunkInfo chunkInfo =
+          new ChunkInfo("chunk_name", 0, 123);
+      ChunkUtils
+          .readData(new File("nosuchfile"), chunkInfo, new VolumeIOStats());
+      fail("Exception is Expected");
+    } catch (StorageContainerException ex) {
+      Assert.assertEquals(UNABLE_TO_FIND_CHUNK, ex.getResult());
+    }
   }
 
 }

@@ -19,10 +19,12 @@
 package org.apache.hadoop.ozone.container.keyvalue.impl;
 
 import com.google.common.base.Preconditions;
+
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.hdds.client.BlockID;
 import org.apache.hadoop.hdds.scm.container.common.helpers.StorageContainerException;
 import org.apache.hadoop.ozone.OzoneConsts;
+import org.apache.hadoop.ozone.common.ChunkBuffer;
 import org.apache.hadoop.ozone.container.common.helpers.ChunkInfo;
 import org.apache.hadoop.ozone.container.common.transport.server.ratis.DispatcherContext;
 import org.apache.hadoop.ozone.container.keyvalue.KeyValueContainerData;
@@ -32,6 +34,8 @@ import org.apache.hadoop.ozone.container.keyvalue.helpers.ChunkUtils;
 import org.apache.hadoop.ozone.container.common.impl.ChunkLayOutVersion;
 import org.apache.hadoop.ozone.container.keyvalue.interfaces.ChunkManager;
 import org.apache.hadoop.ozone.container.common.interfaces.Container;
+
+import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNABLE_TO_FIND_CHUNK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +45,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos
@@ -74,7 +80,7 @@ public class ChunkManagerImpl implements ChunkManager {
    * @throws StorageContainerException
    */
   public void writeChunk(Container container, BlockID blockID, ChunkInfo info,
-      ByteBuffer data, DispatcherContext dispatcherContext)
+      ChunkBuffer data, DispatcherContext dispatcherContext)
       throws StorageContainerException {
     Preconditions.checkNotNull(dispatcherContext);
     DispatcherContext.WriteChunkStage stage = dispatcherContext.getStage();
@@ -159,16 +165,16 @@ public class ChunkManagerImpl implements ChunkManager {
     } catch (StorageContainerException ex) {
       throw ex;
     } catch (NoSuchAlgorithmException ex) {
-      LOG.error("write data failed. error: {}", ex);
+      LOG.error("write data failed.", ex);
       throw new StorageContainerException("Internal error: ", ex,
           NO_SUCH_ALGORITHM);
     } catch (ExecutionException  | IOException ex) {
-      LOG.error("write data failed. error: {}", ex);
+      LOG.error("write data failed.", ex);
       throw new StorageContainerException("Internal error: ", ex,
           CONTAINER_INTERNAL_ERROR);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      LOG.error("write data failed. error: {}", e);
+      LOG.error("write data failed.", e);
       throw new StorageContainerException("Internal error: ", e,
           CONTAINER_INTERNAL_ERROR);
     }
@@ -198,7 +204,7 @@ public class ChunkManagerImpl implements ChunkManager {
    * TODO: Right now we do not support partial reads and writes of chunks.
    * TODO: Explore if we need to do that for ozone.
    */
-  public ByteBuffer readChunk(Container container, BlockID blockID,
+  public ChunkBuffer readChunk(Container container, BlockID blockID,
       ChunkInfo info, DispatcherContext dispatcherContext)
       throws StorageContainerException {
     KeyValueContainerData containerData = (KeyValueContainerData) container
@@ -213,19 +219,35 @@ public class ChunkManagerImpl implements ChunkManager {
     // of the chunk file.
     if (containerData.getLayOutVersion() == ChunkLayOutVersion
         .getLatestVersion().getVersion()) {
-      File chunkFile = ChunkUtils.getChunkFile(containerData, info);
 
-      // In case the chunk file does not exist but tmp chunk file exist,
-      // read from tmp chunk file if readFromTmpFile is set to true
-      if (!chunkFile.exists() && dispatcherContext != null
-          && dispatcherContext.isReadFromTmpFile()) {
-        chunkFile = getTmpChunkFile(chunkFile, dispatcherContext);
+      File finalChunkFile = ChunkUtils.getChunkFile(containerData, info);
+
+      List<File> possibleFiles = new ArrayList<>();
+      possibleFiles.add(finalChunkFile);
+      if (dispatcherContext != null && dispatcherContext.isReadFromTmpFile()) {
+        possibleFiles.add(getTmpChunkFile(finalChunkFile, dispatcherContext));
+        possibleFiles.add(finalChunkFile);
       }
-      data = ChunkUtils.readData(chunkFile, info, volumeIOStats);
-      containerData.incrReadCount();
-      long length = chunkFile.length();
-      containerData.incrReadBytes(length);
-      return data;
+
+      for (File chunkFile : possibleFiles) {
+        try {
+          data = ChunkUtils.readData(chunkFile, info, volumeIOStats);
+          containerData.incrReadCount();
+          long length = info.getLen();
+          containerData.incrReadBytes(length);
+          return ChunkBuffer.wrap(data);
+        } catch (StorageContainerException ex) {
+          //UNABLE TO FIND chunk is not a problem as we will try with the
+          //next possible location
+          if (ex.getResult() != UNABLE_TO_FIND_CHUNK) {
+            throw ex;
+          }
+        }
+      }
+      throw new StorageContainerException(
+          "Chunk file can't be found " + possibleFiles.toString(),
+          UNABLE_TO_FIND_CHUNK);
+
     }
     return null;
   }
