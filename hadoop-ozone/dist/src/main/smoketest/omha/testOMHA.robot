@@ -67,12 +67,13 @@ Create volume and bucket
 Write Test File
     ${writeFileCount} =     Evaluate                ${WRITE_FILE_COUNT}+1
                             Set Global Variable     ${WRITE_FILE_COUNT}     ${writeFileCount}
-    ${fileName} =           Catenate                SEPARATOR=              ${WRITE_FILE_COUNT}       .txt
-                            Copy File               ${TEST_FILE}            ${fileName}
-                            Execute                 ozone fs -copyFromLocal ${fileName} o3fs://${BUCKET}.${VOLUME}.${OM_SERVICE_ID}/
+    ${fileName} =           Set Variable            omha-${WRITE_FILE_COUNT}.txt
+    ${testFilePath} =       Set Variable            ${TEMPDIR}/${fileName}
+                            Copy File               ${TEST_FILE}            ${testFilePath}
+                            Execute                 ozone fs -copyFromLocal ${testFilePath} o3fs://${BUCKET}.${VOLUME}.${OM_SERVICE_ID}/
     ${result} =             Execute                 ozone sh key list o3://${OM_SERVICE_ID}/${VOLUME}/${BUCKET} | jq -r '.name'
                             Should contain          ${result}               ${fileName}
-                            Remove File             ${fileName}
+                            Remove File             ${testFilePath}
 
 Put Key
     [arguments]             ${FILE}                 ${KEY}
