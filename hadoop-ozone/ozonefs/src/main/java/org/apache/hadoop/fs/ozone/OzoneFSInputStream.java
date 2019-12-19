@@ -29,6 +29,8 @@ import org.apache.hadoop.fs.ByteBufferReadable;
 import org.apache.hadoop.fs.FSInputStream;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.fs.Seekable;
+import org.apache.hadoop.fs.StreamCapabilities;
+import org.apache.hadoop.util.StringUtils;
 
 /**
  * The input stream for Ozone file system.
@@ -39,7 +41,7 @@ import org.apache.hadoop.fs.Seekable;
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 public final class OzoneFSInputStream extends FSInputStream
-    implements ByteBufferReadable {
+    implements ByteBufferReadable, StreamCapabilities {
 
   private final InputStream inputStream;
   private final Statistics statistics;
@@ -112,5 +114,25 @@ public final class OzoneFSInputStream extends FSInputStream
     buf.put(readData);
 
     return bytesRead;
+  }
+
+  /**
+   * Query the stream for a specific capability.
+   *
+   * @param capability string to query the stream support for.
+   * @return True if the stream supports capability.
+   */
+  @Override
+  public boolean hasCapability(String capability) {
+    switch (StringUtils.toLowerCase(capability)) {
+
+    /*TODO: Update this case to READBYTEBUFFER when
+     *  dependency version of Hadoop is 3.3.0 or later.
+     */
+    case "in:readbytebuffer":
+      return true;
+    default:
+      return false;
+    }
   }
 }
