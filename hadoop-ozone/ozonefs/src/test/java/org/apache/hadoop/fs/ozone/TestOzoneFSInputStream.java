@@ -44,6 +44,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.apache.hadoop.fs.ozone.OzoneStreamCapabilities.READBYTEBUFFER;
+
 /**
  * Test OzoneFSInputStream by reading through multiple interfaces.
  */
@@ -157,12 +159,7 @@ public class TestOzoneFSInputStream {
   public void testHasCapability() throws IOException {
     try (OzoneFSInputStream inputStream =
              new OzoneFSInputStream(fs.open(filePath))) {
-      /*TODO: The same as implementation of hasCapability,
-       *  update this string to READBYTEBUFFER when
-       *  dependency version of Hadoop is 3.3.0 or later.
-       */
-      String capability = "in:readbytebuffer";
-      Assert.assertTrue(inputStream.hasCapability(capability));
+      Assert.assertTrue(inputStream.hasCapability(READBYTEBUFFER));
     }
   }
 }
