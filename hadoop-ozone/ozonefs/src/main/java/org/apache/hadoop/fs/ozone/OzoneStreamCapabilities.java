@@ -18,52 +18,22 @@
 
 package org.apache.hadoop.fs.ozone;
 
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.fs.StreamCapabilities;
+import java.nio.ByteBuffer;
+
 /**
- * Interface to query streams for supported capabilities of Ozone.
+ * Utility class to query streams for supported capabilities of Ozone.
  *
  * Capability strings must be in lower case.
- *
- * Constant strings are chosen over enums in order to allow other file systems
- * to define their own capabilities.
  */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
-public interface OzoneStreamCapabilities extends StreamCapabilities {
+public final class OzoneStreamCapabilities {
 
-
-  /**
-   * Stream read(ByteBuffer) capability implemented by
-   * {@link ByteBufferReadable#read(java.nio.ByteBuffer)}.
-   */
-  String READBYTEBUFFER = "in:readbytebuffer";
-
-
-  /**
-   * Capabilities that a stream can support and be queried for.
-   */
-  @Deprecated
-  enum StreamCapability {
-    READBYTEBUFFER(OzoneStreamCapabilities.READBYTEBUFFER);
-    private final String capability;
-
-    StreamCapability(String value) {
-      this.capability = value;
-    }
-
-    public final String getValue() {
-      return capability;
-    }
+  private OzoneStreamCapabilities() {
   }
 
   /**
-   * Query the stream for a specific capability.
-   *
-   * @param capability string to query the stream support for.
-   * @return True if the stream supports capability.
+   * Stream read(ByteBuffer) capability implemented by
+   * {@link OzoneFSInputStream#read(ByteBuffer)}.
    */
-  boolean hasCapability(String capability);
+  static final String READBYTEBUFFER = "in:readbytebuffer";
 }
 
