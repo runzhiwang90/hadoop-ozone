@@ -40,7 +40,7 @@ import org.apache.hadoop.util.StringUtils;
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 public final class OzoneFSInputStream extends FSInputStream
-    implements ByteBufferReadable, OzoneStreamCapabilities {
+    implements ByteBufferReadable {
 
   private final InputStream inputStream;
   private final Statistics statistics;
@@ -121,10 +121,9 @@ public final class OzoneFSInputStream extends FSInputStream
    * @param capability string to query the stream support for.
    * @return True if the stream supports capability.
    */
-  @Override
   public boolean hasCapability(String capability) {
     switch (StringUtils.toLowerCase(capability)) {
-    case READBYTEBUFFER:
+    case OzoneStreamCapabilities.READBYTEBUFFER:
       return true;
     default:
       return false;
