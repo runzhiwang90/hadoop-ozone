@@ -28,6 +28,8 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileSystem.Statistics;
+import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.DatanodeDetails;
@@ -157,8 +159,9 @@ public class TestOzoneFSInputStream {
 
   @Test
   public void testHasCapability() throws IOException {
+    Statistics statistics = FileContext.getStatistics(fs.getUri());
     try (OzoneFSInputStream inputStream =
-             new OzoneFSInputStream(fs.open(filePath))) {
+             new OzoneFSInputStream(fs.open(filePath), statistics)) {
       Assert.assertTrue(inputStream.hasCapability(READBYTEBUFFER));
     }
   }
