@@ -39,7 +39,7 @@ import org.apache.hadoop.util.StringUtils;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
-public final class OzoneFSInputStream extends FSInputStream
+public class OzoneFSInputStream extends FSInputStream
     implements ByteBufferReadable {
 
   private final InputStream inputStream;

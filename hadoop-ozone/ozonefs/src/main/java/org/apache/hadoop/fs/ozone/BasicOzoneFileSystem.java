@@ -20,6 +20,7 @@ package org.apache.hadoop.fs.ozone;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
@@ -212,8 +213,13 @@ public class BasicOzoneFileSystem extends FileSystem {
     statistics.incrementReadOps(1);
     LOG.trace("open() path:{}", f);
     final String key = pathToKey(f);
+    InputStream inputStream = adapter.readFile(key);
     return new FSDataInputStream(
-        new OzoneFSInputStream(adapter.readFile(key), statistics));
+        createFSInputStream(inputStream));
+  }
+
+  protected InputStream createFSInputStream(InputStream inputStream) {
+    return new OzoneFSInputStream(inputStream, statistics);
   }
 
   protected void incrementCounter(Statistic statistic) {
