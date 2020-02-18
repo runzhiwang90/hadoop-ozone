@@ -221,6 +221,12 @@ public class OMException extends IOException {
 
     SCM_GET_PIPELINE_EXCEPTION,
 
-    INVALID_BUCKET_NAME
+    INVALID_BUCKET_NAME,
+
+    CANNOT_CREATE_DIRECTORY_AT_ROOT,
+
+    DIRECTORY_ALREADY_EXISTS,
+
+    REPLAY // When ratis logs are replayed.
   }
 }

@@ -447,7 +447,7 @@ public final class OmUtils {
 
   public static File createOMDir(String dirPath) {
     File dirFile = new File(dirPath);
-    if (!dirFile.exists() && !dirFile.mkdirs()) {
+    if (!dirFile.mkdirs() && !dirFile.exists()) {
       throw new IllegalArgumentException("Unable to create path: " + dirFile);
     }
     return dirFile;
@@ -460,13 +460,20 @@ public final class OmUtils {
    * implies that no entry for the object key exists in deletedTable so we
    * create a new instance to include this key, else we update the existing
    * repeatedOmKeyInfo instance.
+   * 3. Set the updateID to the transactionLogIndex.
    * @param keyInfo args supplied by client
    * @param repeatedOmKeyInfo key details from deletedTable
+   * @param trxnLogIndex For Multipart keys, this is the transactionLogIndex
+   *                     of the MultipartUploadAbort request which needs to
+   *                     be set as the updateID of the partKeyInfos.
+   *                     For regular Key deletes, this value should be set to
+   *                     the same updaeID as is in keyInfo.
    * @return {@link RepeatedOmKeyInfo}
    * @throws IOException if I/O Errors when checking for key
    */
   public static RepeatedOmKeyInfo prepareKeyForDelete(OmKeyInfo keyInfo,
-      RepeatedOmKeyInfo repeatedOmKeyInfo) throws IOException{
+      RepeatedOmKeyInfo repeatedOmKeyInfo, long trxnLogIndex)
+      throws IOException {
     // If this key is in a GDPR enforced bucket, then before moving
     // KeyInfo to deletedTable, remove the GDPR related metadata and
     // FileEncryptionInfo from KeyInfo.
@@ -476,6 +483,9 @@ public final class OmUtils {
       keyInfo.getMetadata().remove(OzoneConsts.GDPR_SECRET);
       keyInfo.clearFileEncryptionInfo();
     }
+
+    // Set the updateID
+    keyInfo.setUpdateID(trxnLogIndex);
 
     if(repeatedOmKeyInfo == null) {
       //The key doesn't exist in deletedTable, so create a new instance.

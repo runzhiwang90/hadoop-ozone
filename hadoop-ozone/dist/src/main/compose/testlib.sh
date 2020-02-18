@@ -32,7 +32,7 @@ create_results_dir() {
 }
 
 
-## @description wait until safemode exit (or 30 seconds)
+## @description wait until safemode exit (or 180 seconds)
 ## @param the docker-compose file
 wait_for_safemode_exit(){
   local compose_file=$1
@@ -40,15 +40,15 @@ wait_for_safemode_exit(){
   #Reset the timer
   SECONDS=0
 
-  #Don't give it up until 30 seconds
-  while [[ $SECONDS -lt 90 ]]; do
+  #Don't give it up until 180 seconds
+  while [[ $SECONDS -lt 180 ]]; do
 
      #This line checks the safemode status in scm
      local command="ozone scmcli safemode status"
      if [[ "${SECURITY_ENABLED}" == 'true' ]]; then
-         status=`docker-compose -f "${compose_file}" exec -T scm bash -c "kinit -k HTTP/scm@EXAMPLE.COM -t /etc/security/keytabs/HTTP.keytab && $command"`
+         status=$(docker-compose -f "${compose_file}" exec -T scm bash -c "kinit -k HTTP/scm@EXAMPLE.COM -t /etc/security/keytabs/HTTP.keytab && $command" || true)
      else
-         status=`docker-compose -f "${compose_file}" exec -T scm bash -c "$command"`
+         status=$(docker-compose -f "${compose_file}" exec -T scm bash -c "$command")
      fi
 
      echo $status
@@ -74,11 +74,8 @@ start_docker_env(){
   create_results_dir
   export OZONE_SAFEMODE_MIN_DATANODES="${datanode_count}"
   docker-compose -f "$COMPOSE_FILE" --no-ansi down
-  docker-compose -f "$COMPOSE_FILE" --no-ansi up -d --scale datanode="${datanode_count}" \
-    && wait_for_safemode_exit "$COMPOSE_FILE" \
-    && sleep 10
-
-  if [[ $? -gt 0 ]]; then
+  if ! { docker-compose -f "$COMPOSE_FILE" --no-ansi up -d --scale datanode="${datanode_count}" \
+      && wait_for_safemode_exit "$COMPOSE_FILE"; }; then
     OUTPUT_NAME="$COMPOSE_ENV_NAME"
     stop_docker_env
     return 1
@@ -100,14 +97,20 @@ execute_robot_test(){
   set +e
   OUTPUT_NAME="$COMPOSE_ENV_NAME-$TEST_NAME-$CONTAINER"
   OUTPUT_PATH="$RESULT_DIR_INSIDE/robot-$OUTPUT_NAME.xml"
-  docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE"
   # shellcheck disable=SC2068
-  docker-compose -f "$COMPOSE_FILE" exec -T -e  SECURITY_ENABLED="${SECURITY_ENABLED}" "$CONTAINER" python -m robot ${ARGUMENTS[@]} --log NONE -N "$TEST_NAME" --report NONE "${OZONE_ROBOT_OPTS[@]}" --output "$OUTPUT_PATH" "$SMOKETEST_DIR_INSIDE/$TEST"
+  docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE" \
+    && docker-compose -f "$COMPOSE_FILE" exec -T -e  SECURITY_ENABLED="${SECURITY_ENABLED}" "$CONTAINER" python -m robot ${ARGUMENTS[@]} --log NONE -N "$TEST_NAME" --report NONE "${OZONE_ROBOT_OPTS[@]}" --output "$OUTPUT_PATH" "$SMOKETEST_DIR_INSIDE/$TEST"
+  local -i rc=$?
 
   FULL_CONTAINER_NAME=$(docker-compose -f "$COMPOSE_FILE" ps | grep "_${CONTAINER}_" | head -n 1 | awk '{print $1}')
   docker cp "$FULL_CONTAINER_NAME:$OUTPUT_PATH" "$RESULT_DIR/"
   set -e
 
+  if [[ ${rc} -gt 0 ]]; then
+    stop_docker_env
+  fi
+
+  return ${rc}
 }
 
 

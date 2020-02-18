@@ -35,6 +35,7 @@ import org.apache.hadoop.ozone.audit.AuditLogger;
 import org.apache.hadoop.ozone.audit.AuditMessage;
 import org.apache.hadoop.ozone.om.OzoneManager;
 import org.apache.hadoop.ozone.om.exceptions.OMException;
+import org.apache.hadoop.ozone.om.helpers.WithObjectID;
 import org.apache.hadoop.ozone.om.ratis.utils.OzoneManagerDoubleBufferHelper;
 import org.apache.hadoop.ozone.om.ratis.utils.OzoneManagerRatisUtils;
 import org.apache.hadoop.ozone.om.response.OMClientResponse;
@@ -56,6 +57,18 @@ import javax.annotation.Nonnull;
 public abstract class OMClientRequest implements RequestAuditor {
 
   private OMRequest omRequest;
+
+  /**
+   * Stores the result of request execution in
+   * OMClientRequest#validateAndUpdateCache.
+   */
+  public enum Result {
+    SUCCESS, // The request was executed successfully
+
+    REPLAY, // The request is a replay and was ignored
+
+    FAILURE // The request failed and exception was thrown
+  }
 
   public OMClientRequest(OMRequest omRequest) {
     Preconditions.checkNotNull(omRequest);
@@ -205,6 +218,7 @@ public abstract class OMClientRequest implements RequestAuditor {
     return omResponse.build();
   }
 
+
   private String exceptionErrorMessage(IOException ex) {
     if (ex instanceof OMException) {
       return ex.getMessage();
@@ -242,5 +256,30 @@ public abstract class OMClientRequest implements RequestAuditor {
     Map<String, String> auditMap = new LinkedHashMap<>();
     auditMap.put(OzoneConsts.VOLUME, volume);
     return auditMap;
+  }
+
+  /**
+   * Check if the transaction is a replay.
+   * @param ozoneObj OMVolumeArgs or OMBucketInfo or OMKeyInfo object whose 
+   *                 updateID needs to be compared with
+   * @param transactionID the current transaction ID
+   * @return true if transactionID is less than or equal to updateID, false
+   * otherwise.
+   */
+  protected boolean isReplay(OzoneManager om, WithObjectID ozoneObj,
+      long transactionID) {
+    return om.isRatisEnabled() && ozoneObj.isUpdateIDset() &&
+        transactionID <= ozoneObj.getUpdateID();
+  }
+
+  /**
+   * Return a dummy OMClientResponse for when the transactions are replayed.
+   */
+  protected OMResponse createReplayOMResponse(
+      @Nonnull OMResponse.Builder omResponse) {
+
+    omResponse.setSuccess(false);
+    omResponse.setStatus(OzoneManagerProtocolProtos.Status.REPLAY);
+    return omResponse.build();
   }
 }

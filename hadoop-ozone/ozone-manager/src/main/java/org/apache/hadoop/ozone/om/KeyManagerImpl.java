@@ -815,7 +815,7 @@ public class KeyManagerImpl implements KeyManager {
       RepeatedOmKeyInfo repeatedOmKeyInfo =
           metadataManager.getDeletedTable().get(objectKey);
       repeatedOmKeyInfo = OmUtils.prepareKeyForDelete(keyInfo,
-          repeatedOmKeyInfo);
+          repeatedOmKeyInfo, 0L);
       metadataManager.getKeyTable().delete(objectKey);
       metadataManager.getDeletedTable().put(objectKey, repeatedOmKeyInfo);
     } catch (OMException ex) {
@@ -863,9 +863,9 @@ public class KeyManagerImpl implements KeyManager {
 
     Preconditions.checkNotNull(volumeName);
     Preconditions.checkNotNull(bucketName);
-    Preconditions.checkArgument(maxKeys < listTrashKeysMax,
+    Preconditions.checkArgument(maxKeys <= listTrashKeysMax,
         "The max keys limit specified is not less than the cluster " +
-          "allowed limit.");
+          "allowed maximum limit.");
 
     return metadataManager.listTrash(volumeName, bucketName,
      startKeyName, keyPrefix, maxKeys);
@@ -938,9 +938,13 @@ public class KeyManagerImpl implements KeyManager {
 
       long currentTime = Time.now();
       Map<Integer, PartKeyInfo> partKeyInfoMap = new HashMap<>();
-      OmMultipartKeyInfo multipartKeyInfo = new OmMultipartKeyInfo(
-          multipartUploadID, currentTime, keyArgs.getType(),
-          keyArgs.getFactor(), partKeyInfoMap);
+      OmMultipartKeyInfo multipartKeyInfo = new OmMultipartKeyInfo.Builder()
+          .setUploadID(multipartUploadID)
+          .setCreationTime(currentTime)
+          .setReplicationType(keyArgs.getType())
+          .setReplicationFactor(keyArgs.getFactor())
+          .setPartKeyInfoList(partKeyInfoMap)
+          .build();
       List<OmKeyLocationInfo> locations = new ArrayList<>();
       OmKeyInfo omKeyInfo = new OmKeyInfo.Builder()
           .setVolumeName(keyArgs.getVolumeName())
@@ -1056,7 +1060,7 @@ public class KeyManagerImpl implements KeyManager {
         RepeatedOmKeyInfo repeatedOmKeyInfo =
             metadataManager.getDeletedTable().get(partName);
         repeatedOmKeyInfo = OmUtils.prepareKeyForDelete(
-            keyInfo, repeatedOmKeyInfo);
+            keyInfo, repeatedOmKeyInfo, 0L);
         metadataManager.getDeletedTable().put(partName, repeatedOmKeyInfo);
         throw new OMException("No such Multipart upload is with specified " +
             "uploadId " + uploadID, ResultCodes.NO_SUCH_MULTIPART_UPLOAD_ERROR);
@@ -1093,7 +1097,7 @@ public class KeyManagerImpl implements KeyManager {
                     .get(oldPartKeyInfo.getPartName());
 
             repeatedOmKeyInfo = OmUtils.prepareKeyForDelete(
-                partKey, repeatedOmKeyInfo);
+                partKey, repeatedOmKeyInfo, 0L);
 
             metadataManager.getDeletedTable().put(partName, repeatedOmKeyInfo);
             metadataManager.getDeletedTable().putWithBatch(batch,
@@ -1188,9 +1192,9 @@ public class KeyManagerImpl implements KeyManager {
       // If there is no entry in openKeyTable, then there is no multipart
       // upload initiated for this key.
       if (openKeyInfo == null) {
-        LOG.error("Abort Multipart Upload Failed: volume: " + volumeName +
-            "bucket: " + bucketName + "key: " + keyName + "with error no " +
-            "such uploadID:" + uploadID);
+        LOG.error("Abort Multipart Upload Failed: volume: {} bucket: {} "
+                + "key: {} with error no such uploadID: {}", volumeName,
+                bucketName, keyName, uploadID);
         throw new OMException("Abort Multipart Upload Failed: volume: " +
             volumeName + "bucket: " + bucketName + "key: " + keyName,
             ResultCodes.NO_SUCH_MULTIPART_UPLOAD_ERROR);
@@ -1211,7 +1215,7 @@ public class KeyManagerImpl implements KeyManager {
                     .get(partKeyInfo.getPartName());
 
             repeatedOmKeyInfo = OmUtils.prepareKeyForDelete(
-                currentKeyPartInfo, repeatedOmKeyInfo);
+                currentKeyPartInfo, repeatedOmKeyInfo, 0L);
 
             metadataManager.getDeletedTable().putWithBatch(batch,
                 partKeyInfo.getPartName(), repeatedOmKeyInfo);
@@ -2079,8 +2083,9 @@ public class KeyManagerImpl implements KeyManager {
         OzoneFileStatus fileStatus =
             getFileStatus(argsBuilder.setKeyName(keyName).build());
         if (fileStatus.isFile()) {
-          LOG.error("Unable to create directory (File already exists): volume: "
-              + volumeName + "bucket: " + bucketName + "key: " + keyName);
+          LOG.error("Unable to create directory (File already exists): "
+                  + "volume: {} bucket: {} key: {}", volumeName, bucketName,
+                  keyName);
           throw new OMException(
               "Unable to create directory at : volume: " + volumeName
                   + "bucket: " + bucketName + "key: " + keyName,

@@ -20,6 +20,7 @@ package org.apache.hadoop.fs.ozone;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
@@ -138,7 +139,7 @@ public class BasicOzoneFileSystem extends FileSystem {
       uri = new URIBuilder().setScheme(OZONE_URI_SCHEME)
           .setHost(authority)
           .build();
-      LOG.trace("Ozone URI for ozfs initialization is " + uri);
+      LOG.trace("Ozone URI for ozfs initialization is {}", uri);
 
       //isolated is the default for ozonefs-lib-legacy which includes the
       // /ozonefs.txt, otherwise the default is false. It could be overridden.
@@ -209,10 +210,15 @@ public class BasicOzoneFileSystem extends FileSystem {
   @Override
   public FSDataInputStream open(Path f, int bufferSize) throws IOException {
     incrementCounter(Statistic.INVOCATION_OPEN);
-    statistics.incrementWriteOps(1);
+    statistics.incrementReadOps(1);
     LOG.trace("open() path:{}", f);
     final String key = pathToKey(f);
-    return new FSDataInputStream(new OzoneFSInputStream(adapter.readFile(key)));
+    InputStream inputStream = adapter.readFile(key);
+    return new FSDataInputStream(createFSInputStream(inputStream));
+  }
+
+  protected InputStream createFSInputStream(InputStream inputStream) {
+    return new OzoneFSInputStream(inputStream, statistics);
   }
 
   protected void incrementCounter(Statistic statistic) {
@@ -295,7 +301,12 @@ public class BasicOzoneFileSystem extends FileSystem {
   public boolean rename(Path src, Path dst) throws IOException {
     incrementCounter(Statistic.INVOCATION_RENAME);
     statistics.incrementWriteOps(1);
-    if (src.equals(dst)) {
+    super.checkPath(src);
+    super.checkPath(dst);
+
+    String srcPath = src.toUri().getPath();
+    String dstPath = dst.toUri().getPath();
+    if (srcPath.equals(dstPath)) {
       return true;
     }
 
@@ -306,13 +317,6 @@ public class BasicOzoneFileSystem extends FileSystem {
       return false;
     }
 
-    // Cannot rename a directory to its own subdirectory
-    Path dstParent = dst.getParent();
-    while (dstParent != null && !src.equals(dstParent)) {
-      dstParent = dstParent.getParent();
-    }
-    Preconditions.checkArgument(dstParent == null,
-        "Cannot rename a directory to its own subdirectory");
     // Check if the source exists
     FileStatus srcStatus;
     try {
@@ -322,6 +326,15 @@ public class BasicOzoneFileSystem extends FileSystem {
       return false;
     }
 
+    // Cannot rename a directory to its own subdirectory
+    if (srcStatus.isDirectory()) {
+      Path dstParent = dst.getParent();
+      while (dstParent != null && !src.equals(dstParent)) {
+        dstParent = dstParent.getParent();
+      }
+      Preconditions.checkArgument(dstParent == null,
+          "Cannot rename a directory to its own subdirectory");
+    }
     // Check if the destination exists
     FileStatus dstStatus;
     try {
@@ -348,6 +361,7 @@ public class BasicOzoneFileSystem extends FileSystem {
         // If dst is a directory, rename source as subpath of it.
         // for example rename /source to /dst will lead to /dst/source
         dst = new Path(dst, src.getName());
+        dstPath = dst.toUri().getPath();
         FileStatus[] statuses;
         try {
           statuses = listStatus(dst);
@@ -369,7 +383,8 @@ public class BasicOzoneFileSystem extends FileSystem {
     }
 
     if (srcStatus.isDirectory()) {
-      if (dst.toString().startsWith(src.toString() + OZONE_URI_DELIMITER)) {
+      if (dstPath.toString()
+          .startsWith(srcPath.toString() + OZONE_URI_DELIMITER)) {
         LOG.trace("Cannot rename a directory to a subdirectory of self");
         return false;
       }
@@ -402,7 +417,7 @@ public class BasicOzoneFileSystem extends FileSystem {
         LOG.trace("Skipping deleting root directory");
         return true;
       } else {
-        LOG.trace("deleting key:" + key);
+        LOG.trace("deleting key:{}", key);
         boolean succeed = adapter.deleteObject(key);
         // if recursive delete is requested ignore the return value of
         // deleteObject and issue deletes for other keys.
@@ -423,6 +438,12 @@ public class BasicOzoneFileSystem extends FileSystem {
     LOG.trace("delete() path:{} recursive:{}", f, recursive);
     try {
       DeleteIterator iterator = new DeleteIterator(f, recursive);
+
+      if (f.isRoot()) {
+        LOG.warn("Cannot delete root directory.");
+        return false;
+      }
+
       return iterator.iterate();
     } catch (FileNotFoundException e) {
       if (LOG.isDebugEnabled()) {
@@ -450,12 +471,6 @@ public class BasicOzoneFileSystem extends FileSystem {
 
     if (status.isDirectory()) {
       LOG.debug("delete: Path is a directory: {}", f);
-      key = addTrailingSlashIfNeeded(key);
-
-      if (key.equals("/")) {
-        LOG.warn("Cannot delete root directory.");
-        return false;
-      }
 
       result = innerDelete(f, recursive);
     } else {
@@ -465,7 +480,7 @@ public class BasicOzoneFileSystem extends FileSystem {
 
     if (result) {
       // If this delete operation removes all files/directories from the
-      // parent direcotry, then an empty parent directory must be created.
+      // parent directory, then an empty parent directory must be created.
       createFakeParentDirectory(f);
     }
 
@@ -635,7 +650,7 @@ public class BasicOzoneFileSystem extends FileSystem {
    * @return the key of the object that represents the file.
    */
   public String pathToKey(Path path) {
-    Objects.requireNonNull(path, "Path canf not be null!");
+    Objects.requireNonNull(path, "Path can not be null!");
     if (!path.isAbsolute()) {
       path = new Path(workingDir, path);
     }

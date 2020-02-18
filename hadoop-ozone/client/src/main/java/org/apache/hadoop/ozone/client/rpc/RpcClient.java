@@ -99,7 +99,7 @@ import java.net.URI;
 import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.ozone.OzoneAcl.AclScope.ACCESS;
@@ -127,7 +127,6 @@ public class RpcClient implements ClientProtocol {
   private final long streamBufferFlushSize;
   private final long streamBufferMaxSize;
   private final long blockSize;
-  private final long watchTimeout;
   private final ClientId clientId = ClientId.randomId();
   private final int maxRetryCount;
   private final long retryInterval;
@@ -187,10 +186,6 @@ public class RpcClient implements ClientProtocol {
             StorageUnit.BYTES);
     blockSize = (long) conf.getStorageSize(OzoneConfigKeys.OZONE_SCM_BLOCK_SIZE,
         OzoneConfigKeys.OZONE_SCM_BLOCK_SIZE_DEFAULT, StorageUnit.BYTES);
-    watchTimeout =
-        conf.getTimeDuration(OzoneConfigKeys.OZONE_CLIENT_WATCH_REQUEST_TIMEOUT,
-            OzoneConfigKeys.OZONE_CLIENT_WATCH_REQUEST_TIMEOUT_DEFAULT,
-            TimeUnit.MILLISECONDS);
 
     int configuredChecksumSize = (int) conf.getStorageSize(
         OzoneConfigKeys.OZONE_CLIENT_BYTES_PER_CHECKSUM,
@@ -659,7 +654,7 @@ public class RpcClient implements ClientProtocol {
         .setSortDatanodesInPipeline(topologyAwareReadEnabled)
         .build();
     OmKeyInfo keyInfo = ozoneManagerClient.lookupKey(keyArgs);
-    return createInputStream(keyInfo);
+    return getInputStreamWithRetryFunction(keyInfo);
   }
 
   @Override
@@ -889,7 +884,6 @@ public class RpcClient implements ClientProtocol {
             .setFactor(openKey.getKeyInfo().getFactor())
             .setStreamBufferFlushSize(streamBufferFlushSize)
             .setStreamBufferMaxSize(streamBufferMaxSize)
-            .setWatchTimeout(watchTimeout)
             .setBlockSize(blockSize)
             .setBytesPerChecksum(bytesPerChecksum)
             .setChecksumType(checksumType)
@@ -1031,7 +1025,33 @@ public class RpcClient implements ClientProtocol {
         .setSortDatanodesInPipeline(topologyAwareReadEnabled)
         .build();
     OmKeyInfo keyInfo = ozoneManagerClient.lookupFile(keyArgs);
-    return createInputStream(keyInfo);
+    return getInputStreamWithRetryFunction(keyInfo);
+  }
+
+  /**
+   * Create InputStream with Retry function to refresh pipeline information
+   * if reads fail.
+   * @param keyInfo
+   * @return
+   * @throws IOException
+   */
+  private OzoneInputStream getInputStreamWithRetryFunction(
+      OmKeyInfo keyInfo) throws IOException {
+    return createInputStream(keyInfo, omKeyInfo -> {
+      try {
+        OmKeyArgs omKeyArgs = new OmKeyArgs.Builder()
+            .setVolumeName(omKeyInfo.getVolumeName())
+            .setBucketName(omKeyInfo.getBucketName())
+            .setKeyName(omKeyInfo.getKeyName())
+            .setRefreshPipeline(true)
+            .setSortDatanodesInPipeline(topologyAwareReadEnabled)
+            .build();
+        return ozoneManagerClient.lookupKey(omKeyArgs);
+      } catch (IOException e) {
+        LOG.error("Unable to lookup key {} on retry.", keyInfo.getKeyName(), e);
+        return null;
+      }
+    });
   }
 
   @Override
@@ -1116,11 +1136,12 @@ public class RpcClient implements ClientProtocol {
     return ozoneManagerClient.getAcl(obj);
   }
 
-  private OzoneInputStream createInputStream(OmKeyInfo keyInfo)
+  private OzoneInputStream createInputStream(
+      OmKeyInfo keyInfo, Function<OmKeyInfo, OmKeyInfo> retryFunction)
       throws IOException {
     LengthInputStream lengthInputStream = KeyInputStream
         .getFromOmKeyInfo(keyInfo, xceiverClientManager,
-            verifyChecksum);
+            verifyChecksum, retryFunction);
     FileEncryptionInfo feInfo = keyInfo.getFileEncryptionInfo();
     if (feInfo != null) {
       final KeyProvider.KeyVersion decrypted = getDEK(feInfo);
@@ -1163,7 +1184,6 @@ public class RpcClient implements ClientProtocol {
             .setFactor(HddsProtos.ReplicationFactor.valueOf(factor.getValue()))
             .setStreamBufferFlushSize(streamBufferFlushSize)
             .setStreamBufferMaxSize(streamBufferMaxSize)
-            .setWatchTimeout(watchTimeout)
             .setBlockSize(blockSize)
             .setChecksumType(checksumType)
             .setBytesPerChecksum(bytesPerChecksum)

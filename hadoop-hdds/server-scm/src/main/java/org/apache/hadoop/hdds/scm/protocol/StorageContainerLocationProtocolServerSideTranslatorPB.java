@@ -37,6 +37,8 @@ import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolPro
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.GetContainerResponseProto;
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.GetContainerWithPipelineRequestProto;
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.GetContainerWithPipelineResponseProto;
+import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.GetPipelineRequestProto;
+import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.GetPipelineResponseProto;
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.InSafeModeRequestProto;
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.InSafeModeResponseProto;
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerLocationProtocolProtos.ListPipelineRequestProto;
@@ -63,7 +65,7 @@ import org.apache.hadoop.hdds.scm.container.common.helpers.ContainerWithPipeline
 import org.apache.hadoop.hdds.scm.pipeline.Pipeline;
 import org.apache.hadoop.hdds.scm.protocolPB.StorageContainerLocationProtocolPB;
 import org.apache.hadoop.hdds.server.OzoneProtocolMessageDispatcher;
-import org.apache.hadoop.ozone.protocolPB.ProtocolMessageMetrics;
+import org.apache.hadoop.hdds.utils.ProtocolMessageMetrics;
 
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
@@ -228,6 +230,13 @@ public final class StorageContainerLocationProtocolServerSideTranslatorPB
             .setReplicationManagerStatusResponse(getReplicationManagerStatus(
                 request.getSeplicationManagerStatusRequest()))
             .build();
+      case GetPipeline:
+        return ScmContainerLocationResponse.newBuilder()
+            .setCmdType(request.getCmdType())
+            .setStatus(Status.OK)
+            .setGetPipelineResponse(getPipeline(
+                request.getGetPipelineRequest()))
+            .build();
       default:
         throw new IllegalArgumentException(
             "Unknown command type: " + request.getCmdType());
@@ -328,6 +337,15 @@ public final class StorageContainerLocationProtocolServerSideTranslatorPB
       HddsProtos.Pipeline protobufMessage = pipeline.getProtobufMessage();
       builder.addPipelines(protobufMessage);
     }
+    return builder.build();
+  }
+
+  public GetPipelineResponseProto getPipeline(
+      GetPipelineRequestProto request) throws IOException {
+    GetPipelineResponseProto.Builder builder = GetPipelineResponseProto
+        .newBuilder();
+    Pipeline pipeline = impl.getPipeline(request.getPipelineID());
+    builder.setPipeline(pipeline.getProtobufMessage());
     return builder.build();
   }
 

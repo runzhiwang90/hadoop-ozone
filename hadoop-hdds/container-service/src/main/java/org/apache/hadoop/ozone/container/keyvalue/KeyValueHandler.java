@@ -247,8 +247,7 @@ public class KeyValueHandler extends Handler {
         // The create container request for an already existing container can
         // arrive in case the ContainerStateMachine reapplies the transaction
         // on datanode restart. Just log a warning msg here.
-        LOG.debug("Container already exists." +
-            "container Id " + containerID);
+        LOG.debug("Container already exists. container Id {}", containerID);
       }
     } catch (StorageContainerException ex) {
       return ContainerUtils.logAndReturnError(LOG, ex, request);
@@ -694,7 +693,8 @@ public class KeyValueHandler extends Handler {
       WriteChunkStage stage = dispatcherContext.getStage();
       if (stage == WriteChunkStage.WRITE_DATA ||
           stage == WriteChunkStage.COMBINED) {
-        data = ChunkBuffer.wrap(writeChunk.getData().asReadOnlyByteBuffer());
+        data =
+            ChunkBuffer.wrap(writeChunk.getData().asReadOnlyByteBufferList());
       }
 
       chunkManager
@@ -748,7 +748,7 @@ public class KeyValueHandler extends Handler {
       Preconditions.checkNotNull(chunkInfo);
 
       ChunkBuffer data = ChunkBuffer.wrap(
-          putSmallFileReq.getData().asReadOnlyByteBuffer());
+          putSmallFileReq.getData().asReadOnlyByteBufferList());
       if (dispatcherContext == null) {
         dispatcherContext = new DispatcherContext.Builder().build();
       }

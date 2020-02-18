@@ -32,6 +32,11 @@ import org.apache.hadoop.hdds.utils.db.TableIterator;
 @InterfaceStability.Unstable
 public interface ContainerDBServiceProvider {
 
+  /*
+   * Close the container DB
+   */
+  void close() throws Exception;
+
   /**
    * Create new container DB and bulk Store the container to Key prefix
    * mapping.

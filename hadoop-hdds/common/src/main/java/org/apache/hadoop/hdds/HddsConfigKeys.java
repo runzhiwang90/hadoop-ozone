@@ -16,8 +16,6 @@
  */
 package org.apache.hadoop.hdds;
 
-import org.apache.hadoop.hdds.utils.db.DBProfile;
-
 /**
  * This class contains constants for configuration keys and default values
  * used in hdds.
@@ -55,9 +53,9 @@ public final class HddsConfigKeys {
   // Configuration to allow volume choosing policy.
   public static final String HDDS_DATANODE_VOLUME_CHOOSING_POLICY =
       "hdds.datanode.volume.choosing.policy";
-  // DB PKIProfile used by ROCKDB instances.
+
   public static final String HDDS_DB_PROFILE = "hdds.db.profile";
-  public static final DBProfile HDDS_DEFAULT_DB_PROFILE = DBProfile.DISK;
+
   // Once a container usage crosses this threshold, it is eligible for
   // closing.
   public static final String HDDS_CONTAINER_CLOSE_THRESHOLD =
@@ -164,10 +162,13 @@ public final class HddsConfigKeys {
   public static final String HDDS_X509_FILE_NAME = "hdds.x509.file.name";
   public static final String HDDS_X509_FILE_NAME_DEFAULT = "certificate.crt";
 
+  public static final String HDDS_X509_CRL_NAME = "hdds.x509.CRL.name";
+  public static final String HDDS_X509_CRL_NAME_DEFAULT = "scm.crl";
+
   /**
-   * Default duration of certificates issued by SCM CA.
-   * The formats accepted are based on the ISO-8601 duration format PnDTnHnMn.nS
-   * Default value is 5 years and written as P1865D.
+   * Default duration of certificates issued by SCM CA. The formats accepted are
+   * based on the ISO-8601 duration format PnDTnHnMn.nS Default value is 5 years
+   * and written as P1865D.
    */
   public static final String HDDS_X509_DEFAULT_DURATION = "hdds.x509.default" +
       ".duration";

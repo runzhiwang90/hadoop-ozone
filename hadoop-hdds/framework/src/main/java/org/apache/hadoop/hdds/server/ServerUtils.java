@@ -17,6 +17,10 @@
 
 package org.apache.hadoop.hdds.server;
 
+import java.io.File;
+import java.net.InetSocketAddress;
+import java.util.Collection;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdds.HddsConfigKeys;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
@@ -24,13 +28,10 @@ import org.apache.hadoop.hdds.scm.ScmConfigKeys;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
 import org.apache.hadoop.security.UserGroupInformation;
+
 import org.apache.http.client.methods.HttpRequestBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.net.InetSocketAddress;
-import java.util.Collection;
 
 /**
  * Generic utilities for all HDDS/Ozone servers.
@@ -172,7 +173,7 @@ public final class ServerUtils {
 
     if (metadirs.size() == 1) {
       final File dbDirPath = new File(metadirs.iterator().next());
-      if (!dbDirPath.exists() && !dbDirPath.mkdirs()) {
+      if (!dbDirPath.mkdirs() && !dbDirPath.exists()) {
         throw new IllegalArgumentException("Unable to create directory " +
             dbDirPath + " specified in configuration setting " +
             key);
@@ -239,4 +240,6 @@ public final class ServerUtils {
     File metaDirPath = ServerUtils.getOzoneMetaDirPath(conf);
     return (new File(metaDirPath, "ratis")).getPath();
   }
+
+
 }

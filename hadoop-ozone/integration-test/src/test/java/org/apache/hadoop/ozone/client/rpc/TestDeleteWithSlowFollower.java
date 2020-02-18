@@ -23,6 +23,7 @@ import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
+import org.apache.hadoop.hdds.ratis.RatisHelper;
 import org.apache.hadoop.hdds.scm.ScmConfigKeys;
 import org.apache.hadoop.hdds.scm.XceiverClientManager;
 import org.apache.hadoop.hdds.scm.XceiverClientSpi;
@@ -36,6 +37,7 @@ import org.apache.hadoop.ozone.client.OzoneClient;
 import org.apache.hadoop.ozone.client.OzoneClientFactory;
 import org.apache.hadoop.ozone.client.io.KeyOutputStream;
 import org.apache.hadoop.ozone.client.io.OzoneOutputStream;
+import org.apache.hadoop.hdds.conf.DatanodeRatisServerConfig;
 import org.apache.hadoop.ozone.container.ContainerTestHelper;
 import org.apache.hadoop.ozone.container.common.helpers.BlockData;
 import org.apache.hadoop.ozone.container.common.helpers.ChunkInfo;
@@ -52,6 +54,7 @@ import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -70,6 +73,7 @@ import static org.apache.hadoop.hdds.scm.ScmConfigKeys.OZONE_SCM_STALENODE_INTER
  * Tests delete key operation with a slow follower in the datanode
  * pipeline.
  */
+@Ignore
 public class TestDeleteWithSlowFollower {
 
   private static MiniOzoneCluster cluster;
@@ -107,7 +111,13 @@ public class TestDeleteWithSlowFollower {
         TimeUnit.SECONDS);
     conf.setTimeDuration(OZONE_SCM_PIPELINE_DESTROY_TIMEOUT, 1000,
         TimeUnit.SECONDS);
-    conf.setTimeDuration(OzoneConfigKeys.DFS_RATIS_SERVER_FAILURE_DURATION_KEY,
+    conf.setTimeDuration(
+        RatisHelper.HDDS_DATANODE_RATIS_SERVER_PREFIX_KEY + "." +
+            DatanodeRatisServerConfig.RATIS_FOLLOWER_SLOWNESS_TIMEOUT_KEY,
+        1000, TimeUnit.SECONDS);
+    conf.setTimeDuration(
+        RatisHelper.HDDS_DATANODE_RATIS_SERVER_PREFIX_KEY + "." +
+        DatanodeRatisServerConfig.RATIS_SERVER_NO_LEADER_TIMEOUT_KEY,
         1000, TimeUnit.SECONDS);
     conf.setTimeDuration(OzoneConfigKeys.OZONE_BLOCK_DELETING_SERVICE_INTERVAL,
         1, TimeUnit.SECONDS);

@@ -39,10 +39,19 @@ import javax.annotation.Nonnull;
 public class OMKeyDeleteResponse extends OMClientResponse {
   private OmKeyInfo omKeyInfo;
 
-  public OMKeyDeleteResponse(@Nullable OmKeyInfo omKeyInfo,
-      @Nonnull OMResponse omResponse) {
+  public OMKeyDeleteResponse(@Nonnull OMResponse omResponse,
+      @Nonnull OmKeyInfo omKeyInfo) {
     super(omResponse);
     this.omKeyInfo = omKeyInfo;
+  }
+
+  /**
+   * For when the request is not successful or it is a replay transaction.
+   * For a successful request, the other constructor should be used.
+   */
+  public OMKeyDeleteResponse(@Nonnull OMResponse omResponse) {
+    super(omResponse);
+    checkStatusNotOK();
   }
 
   @Override
@@ -71,7 +80,7 @@ public class OMKeyDeleteResponse extends OMClientResponse {
         RepeatedOmKeyInfo repeatedOmKeyInfo =
             omMetadataManager.getDeletedTable().get(ozoneKey);
         repeatedOmKeyInfo = OmUtils.prepareKeyForDelete(
-            omKeyInfo, repeatedOmKeyInfo);
+            omKeyInfo, repeatedOmKeyInfo, omKeyInfo.getUpdateID());
         omMetadataManager.getDeletedTable().putWithBatch(batchOperation,
             ozoneKey, repeatedOmKeyInfo);
       }
