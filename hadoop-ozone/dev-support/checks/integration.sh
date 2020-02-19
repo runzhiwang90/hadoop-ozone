@@ -21,9 +21,20 @@ mkdir -p "$REPORT_DIR"
 
 export MAVEN_OPTS="-Xmx4096m"
 mvn -B install -DskipTests
-mvn -B -fae test -pl :hadoop-ozone-integration-test "$@" \
-  | tee "${REPORT_DIR}/output.log"
-rc=$?
+
+rc=0
+for i in {1..20}; do
+  echo "Iteration ${i}" | tee "${REPORT_DIR}/output.log"
+
+  mvn -B -fae test -pl :hadoop-ozone-integration-test "$@" \
+    | tee "${REPORT_DIR}/output.log"
+  res=$?
+  echo "Iteration ${i} exit code: ${res}" | tee "${REPORT_DIR}/output.log"
+
+  if [[ ${rc} == 0 ]]; then
+    rc=${res}
+  fi
+done
 
 # shellcheck source=hadoop-ozone/dev-support/checks/_mvn_unit_report.sh
 source "$DIR/_mvn_unit_report.sh"
