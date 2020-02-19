@@ -37,6 +37,10 @@ for i in {1..20}; do
   if [[ ${rc} == 0 ]]; then
     rc=${res}
   fi
+
+  if [[ ${res} != 0 ]]; then
+    break
+  fi
 done
 
 # shellcheck source=hadoop-ozone/dev-support/checks/_mvn_unit_report.sh
