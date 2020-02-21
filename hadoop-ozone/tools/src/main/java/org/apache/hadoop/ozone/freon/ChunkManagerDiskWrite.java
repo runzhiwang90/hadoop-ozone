@@ -19,7 +19,6 @@ package org.apache.hadoop.ozone.freon;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -161,7 +160,7 @@ public class ChunkManagerDiskWrite extends BaseFreonGenerator implements
     BlockID blockId = new BlockID(containerID, localID);
     String chunkName = getPrefix() + "_chunk_" + l;
     ChunkInfo chunkInfo = new ChunkInfo(chunkName, offset, chunkSize);
-    LOG.info("Writing chunk {}: containerID:{} localID:{} offset:{} " +
+    LOG.debug("Writing chunk {}: containerID:{} localID:{} offset:{} " +
             "bytesWritten:{}", l, containerID, localID, offset, bytesWritten);
     DispatcherContext context =
         new DispatcherContext.Builder()
