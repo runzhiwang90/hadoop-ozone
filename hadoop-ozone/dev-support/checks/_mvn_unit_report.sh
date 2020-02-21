@@ -27,16 +27,17 @@ _realpath() {
 }
 
 ## generate summary txt file
-find "." -name 'TEST*.xml' -print0 \
+find "." -not -path './target/*' -name 'TEST*.xml' -print0 \
     | xargs -n1 -0 "grep" -l -E "<failure|<error" \
     | awk -F/ '{sub("'"TEST-"'",""); sub(".xml",""); print $NF}' \
     | tee "$REPORT_DIR/summary.txt"
 
 #Copy heap dump and dump leftovers
-find "." -name "*.hprof" \
+find "." -not -path './target/*' \
+    \( -name "*.hprof" \
     -or -name "*.dump" \
     -or -name "*.dumpstream" \
-    -or -name "hs_err_*.log" \
+    -or -name "hs_err_*.log" \) \
   -exec cp {} "$REPORT_DIR/" \;
 
 ## Add the tests where the JVM is crashed
