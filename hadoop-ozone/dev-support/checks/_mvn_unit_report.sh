@@ -33,11 +33,11 @@ find "." -not -path './target/*' -name 'TEST*.xml' -print0 \
     | tee "$REPORT_DIR/summary.txt"
 
 #Copy heap dump and dump leftovers
-find "." -not -path './target/*' \
-    \( -name "*.hprof" \
+find "." -maxdepth 1 \
+    -name "*.hprof" \
     -or -name "*.dump" \
     -or -name "*.dumpstream" \
-    -or -name "hs_err_*.log" \) \
+    -or -name "hs_err_*.log" \
   -exec cp {} "$REPORT_DIR/" \;
 
 ## Add the tests where the JVM is crashed
@@ -49,7 +49,8 @@ grep -A1 'Crashed tests' "${REPORT_DIR}/output.log" \
 
 #Collect of all of the report files of FAILED tests
 for failed_test in $(< ${REPORT_DIR}/summary.txt); do
-  for file in $(find "." -name "${failed_test}.txt" -or -name "${failed_test}-output.txt" -or -name "TEST-${failed_test}.xml"); do
+  for file in $(find "." -not -path './target/*' \
+      \( -name "${failed_test}.txt" -or -name "${failed_test}-output.txt" -or -name "TEST-${failed_test}.xml" \)); do
     dir=$(dirname "${file}")
     dest_dir=$(_realpath --relative-to="${PWD}" "${dir}/../..") || continue
     mkdir -p "${REPORT_DIR}/${dest_dir}"
