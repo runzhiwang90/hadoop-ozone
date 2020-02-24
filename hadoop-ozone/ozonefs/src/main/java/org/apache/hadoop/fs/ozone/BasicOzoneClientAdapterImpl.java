@@ -210,10 +210,14 @@ public class BasicOzoneClientAdapterImpl implements OzoneClientAdapter {
   }
 
   @Override
-  public OzoneFSOutputStream createFile(String key, boolean overWrite,
+  public OzoneFSOutputStream createFile(String key, short replication, boolean overWrite,
       boolean recursive) throws IOException {
     incrementCounter(Statistic.OBJECTS_CREATED);
     try {
+      if (replication == ReplicationFactor.ONE.getValue()
+          || replication == ReplicationFactor.THREE.getValue()) {
+        replicationFactor = ReplicationFactor.valueOf(replication);
+      }
       OzoneOutputStream ozoneOutputStream = bucket
           .createFile(key, 0, replicationType, replicationFactor, overWrite,
               recursive);
