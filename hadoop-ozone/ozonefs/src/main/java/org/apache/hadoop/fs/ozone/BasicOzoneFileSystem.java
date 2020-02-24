@@ -246,13 +246,21 @@ public class BasicOzoneFileSystem extends FileSystem {
     incrementCounter(Statistic.INVOCATION_CREATE_NON_RECURSIVE);
     statistics.incrementWriteOps(1);
     final String key = pathToKey(path);
-    return createOutputStream(key, replication, flags.contains(CreateFlag.OVERWRITE), false);
+    return createOutputStream(key,
+        replication,
+        flags.contains(CreateFlag.OVERWRITE),
+        false);
   }
 
-  private FSDataOutputStream createOutputStream(String key, short replication, boolean overwrite,
+  private FSDataOutputStream createOutputStream(String key,
+      short replication,
+      boolean overwrite,
       boolean recursive) throws IOException {
-    return new FSDataOutputStream(adapter.createFile(key, replication, overwrite, recursive),
-        statistics);
+    return new FSDataOutputStream(adapter.createFile(
+        key,
+        replication,
+        overwrite,
+        recursive), statistics);
   }
 
   @Override

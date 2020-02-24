@@ -210,7 +210,9 @@ public class BasicOzoneClientAdapterImpl implements OzoneClientAdapter {
   }
 
   @Override
-  public OzoneFSOutputStream createFile(String key, short replication, boolean overWrite,
+  public OzoneFSOutputStream createFile(String key,
+      short replication,
+      boolean overWrite,
       boolean recursive) throws IOException {
     incrementCounter(Statistic.OBJECTS_CREATED);
     try {

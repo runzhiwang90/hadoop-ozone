@@ -399,8 +399,10 @@ public class TestReadWriteStatistics {
   }
 
   private void setupAdapterToReturnFakeOutputStreamOnCreate() throws Exception {
-    when(fakeAdapter.createFile(anyString(), anyShort(), anyBoolean(), anyBoolean()))
-        .thenReturn(new OzoneFSOutputStream(fakeOutputStream));
+    when(fakeAdapter.createFile(anyString(),
+        anyShort(),
+        anyBoolean(),
+        anyBoolean())).thenReturn(new OzoneFSOutputStream(fakeOutputStream));
   }
 
   private void setupFileSystemToUseFakeClientAdapter() throws IOException {
