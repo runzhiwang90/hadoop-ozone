@@ -31,7 +31,7 @@ for i in {1..10}; do
   REPORT_DIR="${original_report_dir}/iteration${i}"
   mkdir -p "${REPORT_DIR}"
 
-  mvn -B -fae test -DfailIfNoTests=false "$@" \
+  mvn -B -fae test -DfailIfNoTests=false -Dskip.yarn "$@" \
     | tee "${REPORT_DIR}/output.log"
   irc=$?
 
