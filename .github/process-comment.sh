@@ -49,6 +49,14 @@ $RESPONSE
         --header "authorization: Bearer $GITHUB_TOKEN" \
         --header 'content-type: application/json' \
         "$COMMENTS_URL"
+      if [[ $? -gt 0 ]]; then
+        echo "response>>>"
+        echo "${RESPONSE}"
+        echo "<<<response"
+        echo "jq>>>"
+        jq --arg body "$RESPONSE" -n '{body: $body}'
+        echo "<<<jq"
+      fi
     else
       echo "$RESPONSE"
     fi
