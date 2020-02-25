@@ -41,7 +41,6 @@ import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -70,7 +69,6 @@ import static org.mockito.Mockito.when;
 /**
  * This class tests OzoneManagerDouble Buffer with actual OMResponse classes.
  */
-@Ignore("HDDS-2648")
 public class TestOzoneManagerDoubleBufferWithOMResponse {
 
   private OzoneManager ozoneManager;
@@ -103,7 +101,8 @@ public class TestOzoneManagerDoubleBufferWithOMResponse {
     when(ozoneManager.getAuditLogger()).thenReturn(auditLogger);
     Mockito.doNothing().when(auditLogger).logWrite(any(AuditMessage.class));
     ozoneManagerRatisSnapshot = index -> {
-      lastAppliedIndex = index.get(index.size() - 1);
+      lastAppliedIndex =
+          index.stream().mapToLong(Long::longValue).max().getAsLong();
     };
     doubleBuffer = new OzoneManagerDoubleBuffer(omMetadataManager,
         ozoneManagerRatisSnapshot);
