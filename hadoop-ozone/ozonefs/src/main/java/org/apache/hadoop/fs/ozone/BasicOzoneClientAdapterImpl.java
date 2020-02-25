@@ -219,12 +219,23 @@ public class BasicOzoneClientAdapterImpl implements OzoneClientAdapter {
       OzoneOutputStream ozoneOutputStream = null;
       if (replication == ReplicationFactor.ONE.getValue()
           || replication == ReplicationFactor.THREE.getValue()) {
-        ReplicationFactor clientReplication = ReplicationFactor.valueOf(replication);
-        ozoneOutputStream = bucket.createFile(key, 0, replicationType,
-            clientReplication, overWrite, recursive);
+        ReplicationFactor clientReplication
+            = ReplicationFactor.valueOf(replication);
+        ozoneOutputStream = bucket.createFile(
+            key,
+            0,
+            replicationType,
+            clientReplication,
+            overWrite,
+            recursive);
       } else {
-        ozoneOutputStream = bucket.createFile(key, 0, replicationType,
-            replicationFactor, overWrite, recursive);
+        ozoneOutputStream = bucket.createFile(
+            key,
+            0,
+            replicationType,
+            replicationFactor,
+            overWrite,
+            recursive);
       }
       return new OzoneFSOutputStream(ozoneOutputStream.getOutputStream());
     } catch (OMException ex) {
