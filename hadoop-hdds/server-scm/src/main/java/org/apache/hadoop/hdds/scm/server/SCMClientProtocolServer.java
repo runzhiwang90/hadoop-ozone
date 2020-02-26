@@ -32,7 +32,7 @@ import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos.ScmOps;
 import org.apache.hadoop.hdds.protocol.proto
     .StorageContainerLocationProtocolProtos;
-import org.apache.hadoop.hdds.scm.HddsServerUtil;
+import org.apache.hadoop.hdds.utils.HddsServerUtil;
 import org.apache.hadoop.hdds.scm.ScmInfo;
 import org.apache.hadoop.hdds.scm.ScmUtils;
 import org.apache.hadoop.hdds.scm.events.SCMEvents;
@@ -62,7 +62,7 @@ import org.apache.hadoop.ozone.audit.AuditMessage;
 import org.apache.hadoop.ozone.audit.Auditor;
 import org.apache.hadoop.ozone.audit.SCMAction;
 import org.apache.hadoop.hdds.scm.protocol.StorageContainerLocationProtocolServerSideTranslatorPB;
-import org.apache.hadoop.ozone.protocolPB.ProtocolMessageMetrics;
+import org.apache.hadoop.hdds.utils.ProtocolMessageMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -395,10 +395,10 @@ public class SCMClientProtocolServer implements
   public Pipeline createReplicationPipeline(HddsProtos.ReplicationType type,
       HddsProtos.ReplicationFactor factor, HddsProtos.NodePool nodePool)
       throws IOException {
-    // TODO: will be addressed in future patch.
-    // This is needed only for debugging purposes to make sure cluster is
-    // working correctly.
-    return null;
+    Pipeline result = scm.getPipelineManager().createPipeline(type, factor);
+    AUDIT.logWriteSuccess(
+        buildAuditMessageForSuccess(SCMAction.CREATE_PIPELINE, null));
+    return result;
   }
 
   @Override
@@ -406,6 +406,13 @@ public class SCMClientProtocolServer implements
     AUDIT.logReadSuccess(
         buildAuditMessageForSuccess(SCMAction.LIST_PIPELINE, null));
     return scm.getPipelineManager().getPipelines();
+  }
+
+  @Override
+  public Pipeline getPipeline(HddsProtos.PipelineID pipelineID)
+      throws IOException {
+    return scm.getPipelineManager().getPipeline(
+        PipelineID.getFromProtobuf(pipelineID));
   }
 
   @Override
@@ -434,7 +441,7 @@ public class SCMClientProtocolServer implements
     PipelineManager pipelineManager = scm.getPipelineManager();
     Pipeline pipeline =
         pipelineManager.getPipeline(PipelineID.getFromProtobuf(pipelineID));
-    pipelineManager.finalizeAndDestroyPipeline(pipeline, false);
+    pipelineManager.finalizeAndDestroyPipeline(pipeline, true);
     AUDIT.logWriteSuccess(
         buildAuditMessageForSuccess(SCMAction.CLOSE_PIPELINE, null)
     );

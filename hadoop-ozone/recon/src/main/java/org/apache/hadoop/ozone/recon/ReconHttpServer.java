@@ -19,8 +19,8 @@ package org.apache.hadoop.ozone.recon;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hdds.server.BaseHttpServer;
+import org.apache.hadoop.hdds.conf.OzoneConfiguration;
+import org.apache.hadoop.hdds.server.http.BaseHttpServer;
 
 import com.google.inject.Inject;
 
@@ -31,7 +31,7 @@ import com.google.inject.Inject;
 public class ReconHttpServer extends BaseHttpServer {
 
   @Inject
-  ReconHttpServer(Configuration conf) throws IOException {
+  ReconHttpServer(OzoneConfiguration conf) throws IOException {
     super(conf, "recon");
   }
 

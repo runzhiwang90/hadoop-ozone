@@ -185,6 +185,11 @@ public class BasicOzoneClientAdapterImpl implements OzoneClientAdapter {
   }
 
   @Override
+  public short getDefaultReplication() {
+    return (short) replicationFactor.getValue();
+  }
+
+  @Override
   public void close() throws IOException {
     ozoneClient.close();
   }
@@ -503,6 +508,7 @@ public class BasicOzoneClientAdapterImpl implements OzoneClientAdapter {
         omKeyLocationInfoGroup.getBlocksLatestVersionOnly().size()];
 
     int i = 0;
+    long offsetOfBlockInFile = 0L;
     for (OmKeyLocationInfo omKeyLocationInfo :
         omKeyLocationInfoGroup.getBlocksLatestVersionOnly()) {
       List<String> hostList = new ArrayList<>();
@@ -521,8 +527,9 @@ public class BasicOzoneClientAdapterImpl implements OzoneClientAdapter {
       String[] hosts = hostList.toArray(new String[hostList.size()]);
       String[] names = nameList.toArray(new String[nameList.size()]);
       BlockLocation blockLocation = new BlockLocation(
-          names, hosts, omKeyLocationInfo.getOffset(),
+          names, hosts, offsetOfBlockInFile,
           omKeyLocationInfo.getLength());
+      offsetOfBlockInFile += omKeyLocationInfo.getLength();
       blockLocations[i++] = blockLocation;
     }
     return blockLocations;
