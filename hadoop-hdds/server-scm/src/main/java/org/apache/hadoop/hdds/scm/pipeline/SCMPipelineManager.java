@@ -153,27 +153,24 @@ public class SCMPipelineManager implements PipelineManager {
           .newBuilder(HddsProtos.Pipeline.PARSER.parseFrom(entry.getValue()));
       Pipeline pipeline = Pipeline.getFromProtobuf(pipelineBuilder.setState(
           HddsProtos.PipelineState.PIPELINE_ALLOCATED).build());
+      // When SCM is restarted, set Creation time with current time.
+      pipeline.setCreationTimestamp(Instant.now());
       Preconditions.checkNotNull(pipeline);
       stateManager.addPipeline(pipeline);
       nodeManager.addPipeline(pipeline);
     }
   }
 
-  @Override
-  public synchronized Pipeline createPipeline(ReplicationType type,
-      ReplicationFactor factor) throws IOException {
-    lock.writeLock().lock();
-    try {
-      Pipeline pipeline = pipelineFactory.create(type, factor);
-      pipelineStore.put(pipeline.getId().getProtobuf().toByteArray(),
-          pipeline.getProtobufMessage().toByteArray());
-      stateManager.addPipeline(pipeline);
-      nodeManager.addPipeline(pipeline);
-      metrics.incNumPipelineAllocated();
-      if (pipeline.isOpen()) {
-        metrics.incNumPipelineCreated();
-        metrics.createPerPipelineMetrics(pipeline);
-      }
+  private void recordMetricsForPipeline(Pipeline pipeline) {
+    metrics.incNumPipelineAllocated();
+    if (pipeline.isOpen()) {
+      metrics.incNumPipelineCreated();
+      metrics.createPerPipelineMetrics(pipeline);
+    }
+    switch (pipeline.getType()) {
+    case STAND_ALONE:
+      return;
+    case RATIS:
       List<Pipeline> overlapPipelines = RatisPipelineUtils
           .checkPipelineContainSameDatanodes(stateManager, pipeline);
       if (!overlapPipelines.isEmpty()) {
@@ -189,6 +186,26 @@ public class SCMPipelineManager implements PipelineManager {
               ", " + pipeline.getNodes().get(2).getUuid().toString());
         }
       }
+      return;
+    case CHAINED:
+      // Not supported.
+    default:
+      // Not supported.
+      return;
+    }
+  }
+
+  @Override
+  public synchronized Pipeline createPipeline(ReplicationType type,
+      ReplicationFactor factor) throws IOException {
+    lock.writeLock().lock();
+    try {
+      Pipeline pipeline = pipelineFactory.create(type, factor);
+      pipelineStore.put(pipeline.getId().getProtobuf().toByteArray(),
+          pipeline.getProtobufMessage().toByteArray());
+      stateManager.addPipeline(pipeline);
+      nodeManager.addPipeline(pipeline);
+      recordMetricsForPipeline(pipeline);
       return pipeline;
     } catch (IOException ex) {
       metrics.incNumPipelineCreationFailed();
