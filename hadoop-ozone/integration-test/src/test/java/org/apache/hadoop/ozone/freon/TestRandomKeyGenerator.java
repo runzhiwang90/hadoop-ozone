@@ -115,29 +115,6 @@ public class TestRandomKeyGenerator {
   }
 
   @Test @Ignore
-  public void ratisTest3() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(10);
-    randomKeyGenerator.setNumOfBuckets(1);
-    randomKeyGenerator.setNumOfKeys(10);
-    randomKeyGenerator.setNumOfThreads(10);
-    randomKeyGenerator.setKeySize(10240);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
-
-    runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 100 == randomKeyGenerator.getNumberOfKeysAdded(),
-        100, 120_000);
-
-    Assert.assertEquals(10, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
-  }
-
-  @Test
   public void bigFileThan2GB() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
