@@ -25,5 +25,9 @@
     <name>hdds.datanode.du.factory.classname</name>
     <value>org.apache.hadoop.hdds.fs.MockSpaceUsageCheckFactory$None</value>
   </property>
+  <property>
+    <name>dfs.container.ratis.num.write.chunk.threads</name>
+    <value>4</value>
+  </property>
 
 </configuration>
