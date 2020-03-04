@@ -206,9 +206,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
   private AtomicInteger numberOfBucketsCreated;
   private AtomicLong numberOfKeysAdded;
 
-  private long totalWritesValidated;
-  private long writeValidationSuccessCount;
-  private long writeValidationFailureCount;
+  private AtomicLong totalWritesValidated;
+  private AtomicLong writeValidationSuccessCount;
+  private AtomicLong writeValidationFailureCount;
 
   private BlockingQueue<KeyValidate> validationQueue;
   private ArrayList<Histogram> histograms = new ArrayList<>();
@@ -236,9 +236,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
     numberOfVolumesCreated = new AtomicInteger();
     numberOfBucketsCreated = new AtomicInteger();
     numberOfKeysAdded = new AtomicLong();
-    totalWritesValidated = 0L;
-    writeValidationSuccessCount = 0L;
-    writeValidationFailureCount = 0L;
+    totalWritesValidated = new AtomicLong();
+    writeValidationSuccessCount = new AtomicLong();
+    writeValidationFailureCount = new AtomicLong();
     volumeCounter = new AtomicInteger();
     bucketCounter = new AtomicInteger();
     keyCounter = new AtomicLong();
@@ -321,7 +321,10 @@ public final class RandomKeyGenerator implements Callable<Void> {
       try {
         Thread.sleep(CHECK_INTERVAL_MILLIS);
       } catch (InterruptedException e) {
-        throw e;
+        if (exception == null) {
+          exception = e;
+        }
+        Thread.currentThread().interrupt();
       }
     }
     executor.shutdown();
@@ -339,7 +342,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
     }
     ozoneClient.close();
     if (exception != null) {
-      throw new RuntimeException(exception);
+      throw new IllegalStateException(exception);
     }
     return null;
   }
@@ -410,7 +413,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
       out.println("Total number of writes validated: " +
           totalWritesValidated);
       out.println("Writes validated: " +
-          (100.0 * totalWritesValidated / numberOfKeysAdded.get())
+          (100.0 * totalWritesValidated.get() / numberOfKeysAdded.get())
           + " %");
       out.println("Successful validation: " +
           writeValidationSuccessCount);
@@ -528,7 +531,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
    */
   @VisibleForTesting
   long getTotalKeysValidated() {
-    return totalWritesValidated;
+    return totalWritesValidated.get();
   }
 
   /**
@@ -538,7 +541,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
    */
   @VisibleForTesting
   long getSuccessfulValidationCount() {
-    return writeValidationSuccessCount;
+    return writeValidationSuccessCount.get();
   }
 
   /**
@@ -548,7 +551,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
    */
   @VisibleForTesting
   long getUnsuccessfulValidationCount() {
-    return validateWrites ? writeValidationFailureCount : 0;
+    return writeValidationFailureCount.get();
   }
 
   /**
@@ -1039,11 +1042,11 @@ public final class RandomKeyGenerator implements Callable<Void> {
             OzoneInputStream is = kv.bucket.readKey(kv.keyName);
             dig.getMessageDigest().reset();
             byte[] curDigest = dig.digest(is);
-            totalWritesValidated++;
+            totalWritesValidated.incrementAndGet();
             if (MessageDigest.isEqual(kv.digest, curDigest)) {
-              writeValidationSuccessCount++;
+              writeValidationSuccessCount.incrementAndGet();
             } else {
-              writeValidationFailureCount++;
+              writeValidationFailureCount.incrementAndGet();
               LOG.warn("Data validation error for key {}/{}/{}",
                   kv.bucket.getVolumeName(), kv.bucket, kv.keyName);
               LOG.warn("Expected checksum: {}, Actual checksum: {}",

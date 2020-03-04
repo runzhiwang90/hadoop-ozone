@@ -60,7 +60,7 @@ public abstract class TestDataValidate {
     TestRandomKeyGenerator.runInBackground(randomKeyGenerator);
 
     GenericTestUtils.waitFor(
-        () -> 1 == randomKeyGenerator.getNumberOfKeysAdded(),
+        () -> 1 == randomKeyGenerator.getTotalKeysValidated(),
         100, 120_000);
 
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
