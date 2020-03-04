@@ -703,6 +703,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
               int curSize = (int) Math.min(bufferSize, nrRemaining);
               os.write(keyValueBuffer, 0, curSize);
             }
+            os.flush();
 
             long keyWriteDuration = System.nanoTime() - keyWriteStart;
             histograms.get(FreonOps.KEY_WRITE.ordinal())
