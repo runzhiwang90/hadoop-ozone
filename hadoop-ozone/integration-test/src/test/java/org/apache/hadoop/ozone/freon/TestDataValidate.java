@@ -18,20 +18,18 @@
 
 package org.apache.hadoop.ozone.freon;
 
-import org.apache.hadoop.hdds.client.ReplicationFactor;
-import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.ozone.MiniOzoneCluster;
-import org.apache.hadoop.test.GenericTestUtils;
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.apache.hadoop.ozone.freon.TestRandomKeyGenerator.runTest;
 
 /**
  * Tests Freon, with MiniOzoneCluster and validate data.
  */
 public abstract class TestDataValidate {
 
-  private static MiniOzoneCluster cluster = null;
+  private static MiniOzoneCluster cluster;
 
   static void startCluster(OzoneConfiguration conf) throws Exception {
     cluster = MiniOzoneCluster.newBuilder(conf)
@@ -47,52 +45,14 @@ public abstract class TestDataValidate {
 
   @Test
   public void ratisTestLargeKey() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(1);
-    randomKeyGenerator.setNumOfBuckets(1);
-    randomKeyGenerator.setNumOfKeys(1);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setKeySize(20971520);
-    randomKeyGenerator.setValidateWrites(true);
-
-    TestRandomKeyGenerator.runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 1 == randomKeyGenerator.getTotalKeysValidated(),
-        100, 120_000);
-
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
-    Assert.assertEquals(0, randomKeyGenerator.getUnsuccessfulValidationCount());
+    runTest(1, 1, 1, 20971520, 10, true,
+        cluster.getConf());
   }
 
   @Test
   public void validateWriteTest() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(2);
-    randomKeyGenerator.setNumOfBuckets(5);
-    randomKeyGenerator.setNumOfKeys(10);
-    randomKeyGenerator.setValidateWrites(true);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-
-    TestRandomKeyGenerator.runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 100 == randomKeyGenerator.getTotalKeysValidated(),
-        100, 120_000);
-
-    Assert.assertEquals(2, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
-    Assert.assertTrue(randomKeyGenerator.getValidateWrites());
-    Assert.assertEquals(100, randomKeyGenerator.getTotalKeysValidated());
-    Assert.assertEquals(100, randomKeyGenerator.getSuccessfulValidationCount());
-    Assert.assertEquals(0, randomKeyGenerator.getUnsuccessfulValidationCount());
+    runTest(2, 5, 10, 10240, 10, true,
+        cluster.getConf());
   }
 
 }

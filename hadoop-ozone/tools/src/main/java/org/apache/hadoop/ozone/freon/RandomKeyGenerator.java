@@ -37,10 +37,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
+import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentracing.Scope;
 import io.opentracing.util.GlobalTracer;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdds.HddsConfigKeys;
 import org.apache.hadoop.hdds.cli.HddsVersionProvider;
 import org.apache.hadoop.hdds.client.OzoneQuota;
@@ -213,7 +215,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
   private BlockingQueue<KeyValidate> validationQueue;
   private ArrayList<Histogram> histograms = new ArrayList<>();
 
-  private OzoneConfiguration ozoneConfiguration;
+  private Configuration ozoneConfiguration;
   private ProgressBar progressbar;
 
   RandomKeyGenerator() {
@@ -221,11 +223,11 @@ public final class RandomKeyGenerator implements Callable<Void> {
 
   @VisibleForTesting
   RandomKeyGenerator(OzoneConfiguration ozoneConfiguration) throws IOException {
-    this.ozoneConfiguration = ozoneConfiguration;
     init(ozoneConfiguration);
   }
 
-  public void init(OzoneConfiguration configuration) throws IOException {
+  public void init(Configuration configuration) throws IOException {
+    ozoneConfiguration = configuration;
     startTime = System.nanoTime();
     jobStartTime = System.currentTimeMillis();
     volumeCreationTime = new AtomicLong();
@@ -247,7 +249,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
     ozoneClient = OzoneClientFactory.getClient(configuration);
     objectStore = ozoneClient.getObjectStore();
 
-    if (!configuration.getBoolean(
+    if (validateWrites && !configuration.getBoolean(
         HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA,
         HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA_DEFAULT)) {
       LOG.info("Override validateWrites to false, because "
@@ -286,7 +288,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
     totalKeyCount = totalBucketCount * numOfKeys;
 
     threadPoolSize = (int) Math.min(numOfThreads, totalKeyCount);
-    LOG.info("Number of Threads: {} requested, {} actual",
+    LOG.info("Number of Threads: requested {}, actual {}",
         numOfThreads, threadPoolSize);
     executor = Executors.newFixedThreadPool(threadPoolSize);
     addShutdownHook();
@@ -698,11 +700,13 @@ public final class RandomKeyGenerator implements Callable<Void> {
 
           try (Scope writeScope = GlobalTracer.get().buildSpan("writeKeyData")
               .startActive(true)) {
+            long bytesWritten = 0;
             long keyWriteStart = System.nanoTime();
             for (long nrRemaining = keySize;
                  nrRemaining > 0; nrRemaining -= bufferSize) {
               int curSize = (int) Math.min(bufferSize, nrRemaining);
               os.write(keyValueBuffer, 0, curSize);
+              bytesWritten += curSize;
             }
             os.flush();
 
@@ -710,8 +714,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
             histograms.get(FreonOps.KEY_WRITE.ordinal())
                 .update(keyWriteDuration);
             keyWriteTime.getAndAdd(keyWriteDuration);
-            totalBytesWritten.getAndAdd(keySize);
+            totalBytesWritten.getAndAdd(bytesWritten);
             numberOfKeysAdded.getAndIncrement();
+            Preconditions.checkState(bytesWritten == keySize);
           }
         }
       }
@@ -1043,7 +1048,6 @@ public final class RandomKeyGenerator implements Callable<Void> {
           if (kv != null) {
             OzoneInputStream is = kv.bucket.readKey(kv.keyName);
             dig.getMessageDigest().reset();
-            totalWritesValidated.incrementAndGet();
             byte[] curDigest = dig.digest(is);
             if (MessageDigest.isEqual(kv.digest, curDigest)) {
               writeValidationSuccessCount.incrementAndGet();
@@ -1054,11 +1058,13 @@ public final class RandomKeyGenerator implements Callable<Void> {
               LOG.warn("Expected checksum: {}, Actual checksum: {}",
                   kv.digest, curDigest);
             }
+            totalWritesValidated.incrementAndGet();
             is.close();
           }
         } catch (IOException ex) {
           LOG.error("Exception while validating write.", ex);
           writeValidationFailureCount.incrementAndGet();
+          totalWritesValidated.incrementAndGet();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
         }

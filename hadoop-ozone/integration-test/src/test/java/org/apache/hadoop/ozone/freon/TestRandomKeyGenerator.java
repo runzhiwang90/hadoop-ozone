@@ -18,19 +18,24 @@
 
 package org.apache.hadoop.ozone.freon;
 
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdds.client.ReplicationFactor;
 import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.ozone.MiniOzoneCluster;
 import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeoutException;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests Freon, with MiniOzoneCluster.
@@ -70,119 +75,69 @@ public class TestRandomKeyGenerator {
     THREAD_FACTORY.newThread(subject::run).start();
   }
 
-  @Test
-  public void defaultTest() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(2);
-    randomKeyGenerator.setNumOfBuckets(5);
-    randomKeyGenerator.setNumOfKeys(10);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
+  static void runTest(int volumes, int buckets, int keys,
+      long keySize, int threads, boolean validate, Configuration config)
+      throws IOException, InterruptedException, TimeoutException {
 
-    runInBackground(randomKeyGenerator);
+    RandomKeyGenerator subject = new RandomKeyGenerator();
+    subject.setNumOfVolumes(volumes);
+    subject.setNumOfBuckets(buckets);
+    subject.setNumOfKeys(keys);
+    subject.setKeySize(keySize);
+    subject.setFactor(ReplicationFactor.THREE);
+    subject.setType(ReplicationType.RATIS);
+    subject.setValidateWrites(validate);
+    subject.setNumOfThreads(threads);
+    subject.init(config);
 
-    GenericTestUtils.waitFor(
-        () -> 100 == randomKeyGenerator.getNumberOfKeysAdded(),
-        100, 120_000);
+    runInBackground(subject);
 
-    Assert.assertEquals(2, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
-    Assert.assertEquals(10, randomKeyGenerator.getThreadPoolSize());
+    int expectedBuckets = volumes * buckets;
+    int expectedKeys = expectedBuckets * keys;
+
+    Supplier<Boolean> check = subject.getValidateWrites()
+        ? () -> expectedKeys == subject.getTotalKeysValidated()
+        : () -> expectedKeys == subject.getNumberOfKeysAdded();
+    int timeout = (int) (expectedKeys * Math.max(32, Math.sqrt(keySize)) * 13);
+    if (subject.getValidateWrites()) {
+      timeout *= 2;
+    }
+    GenericTestUtils.waitFor(check, 100, timeout);
+
+    assertEquals(volumes, subject.getNumberOfVolumesCreated());
+    assertEquals(expectedBuckets, subject.getNumberOfBucketsCreated());
+    assertEquals(expectedKeys, subject.getNumberOfKeysAdded());
+    assertEquals(Math.min(expectedKeys, threads), subject.getThreadPoolSize());
+
+    if (subject.getValidateWrites()) {
+      assertEquals(expectedKeys, subject.getTotalKeysValidated());
+      assertEquals(expectedKeys, subject.getSuccessfulValidationCount());
+      assertEquals(0, subject.getUnsuccessfulValidationCount());
+    }
   }
 
   @Test
-  public void multiThread() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(10);
-    randomKeyGenerator.setNumOfBuckets(1);
-    randomKeyGenerator.setNumOfKeys(10);
-    randomKeyGenerator.setNumOfThreads(10);
-    randomKeyGenerator.setKeySize(10240);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
+  public void test1() throws Exception {
+    runTest(2, 4, 8, 10240, 4, false,
+        cluster.getConf());
+  }
 
-    runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 100 == randomKeyGenerator.getNumberOfKeysAdded(),
-        100, 120_000);
-
-    Assert.assertEquals(10, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
+  @Test
+  public void test2() throws Exception {
+    runTest(8, 4, 128, 16, 8, false,
+        cluster.getConf());
   }
 
   @Test @Ignore
   public void bigFileThan2GB() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(1);
-    randomKeyGenerator.setNumOfBuckets(1);
-    randomKeyGenerator.setNumOfKeys(1);
-    randomKeyGenerator.setNumOfThreads(1);
-    randomKeyGenerator.setKeySize(10L + Integer.MAX_VALUE);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.setValidateWrites(true);
-
-    runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 1 == randomKeyGenerator.getSuccessfulValidationCount(),
-        100, 600_000);
-
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
-    Assert.assertEquals(1, randomKeyGenerator.getSuccessfulValidationCount());
-  }
-
-  @Test @Ignore
-  public void fileWithSizeZero() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(1);
-    randomKeyGenerator.setNumOfBuckets(1);
-    randomKeyGenerator.setNumOfKeys(1);
-    randomKeyGenerator.setNumOfThreads(1);
-    randomKeyGenerator.setKeySize(0);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.setValidateWrites(true);
-
-    runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 1 == randomKeyGenerator.getSuccessfulValidationCount(),
-        100, 120_000);
-
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
-    Assert.assertEquals(1, randomKeyGenerator.getSuccessfulValidationCount());
+    runTest(1, 1, 1, 10L + Integer.MAX_VALUE, 10, true,
+        cluster.getConf());
   }
 
   @Test
-  public void testThreadPoolSize() throws Exception {
-    RandomKeyGenerator randomKeyGenerator =
-        new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
-    randomKeyGenerator.setNumOfVolumes(1);
-    randomKeyGenerator.setNumOfBuckets(1);
-    randomKeyGenerator.setNumOfKeys(1);
-    randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.setNumOfThreads(10);
-
-    runInBackground(randomKeyGenerator);
-
-    GenericTestUtils.waitFor(
-        () -> 1 == randomKeyGenerator.getNumberOfKeysAdded(),
-        100, 120_000);
-
-    Assert.assertEquals(1, randomKeyGenerator.getThreadPoolSize());
-    Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
+  public void emptyFile() throws Exception {
+    runTest(1, 1, 1, 0, 10, true,
+        cluster.getConf());
   }
+
 }
