@@ -201,7 +201,7 @@ public class TestRandomKeyGenerator {
         () -> 1 == randomKeyGenerator.getNumberOfKeysAdded(),
         100, 120_000);
 
-    Assert.assertEquals(10, randomKeyGenerator.getThreadPoolSize());
+    Assert.assertEquals(1, randomKeyGenerator.getThreadPoolSize());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
   }
 }

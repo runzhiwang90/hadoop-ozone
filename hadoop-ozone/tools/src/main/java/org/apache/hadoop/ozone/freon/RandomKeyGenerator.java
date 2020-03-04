@@ -285,8 +285,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
     totalBucketCount = numOfVolumes * numOfBuckets;
     totalKeyCount = totalBucketCount * numOfKeys;
 
-    LOG.info("Number of Threads: {}", numOfThreads);
-    threadPoolSize = numOfThreads;
+    threadPoolSize = (int) Math.min(numOfThreads, totalKeyCount);
+    LOG.info("Number of Threads: {} requested, {} actual",
+        numOfThreads, threadPoolSize);
     executor = Executors.newFixedThreadPool(threadPoolSize);
     addShutdownHook();
 
@@ -296,7 +297,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
     LOG.info("Key size: {} bytes", keySize);
     LOG.info("Buffer size: {} bytes", bufferSize);
     LOG.info("validateWrites : {}", validateWrites);
-    for (int i = 0; i < numOfThreads; i++) {
+    for (int i = 0; i < threadPoolSize; i++) {
       executor.execute(new ObjectCreator());
     }
 
