@@ -28,7 +28,6 @@ import org.apache.hadoop.ozone.MiniOzoneCluster;
 import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -128,7 +127,7 @@ public class TestRandomKeyGenerator {
         cluster.getConf());
   }
 
-  @Test @Ignore
+  @Test
   public void bigFileThan2GB() throws Exception {
     runTest(1, 1, 1, 10L + Integer.MAX_VALUE, 10, true,
         cluster.getConf());
