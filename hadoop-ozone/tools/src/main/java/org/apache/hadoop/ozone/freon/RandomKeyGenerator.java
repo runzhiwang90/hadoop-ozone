@@ -1041,8 +1041,8 @@ public final class RandomKeyGenerator implements Callable<Void> {
           if (kv != null) {
             OzoneInputStream is = kv.bucket.readKey(kv.keyName);
             dig.getMessageDigest().reset();
-            byte[] curDigest = dig.digest(is);
             totalWritesValidated.incrementAndGet();
+            byte[] curDigest = dig.digest(is);
             if (MessageDigest.isEqual(kv.digest, curDigest)) {
               writeValidationSuccessCount.incrementAndGet();
             } else {
@@ -1056,6 +1056,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
           }
         } catch (IOException ex) {
           LOG.error("Exception while validating write.", ex);
+          writeValidationFailureCount.incrementAndGet();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
         }
