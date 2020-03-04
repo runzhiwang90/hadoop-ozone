@@ -26,6 +26,7 @@ import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,7 +45,7 @@ public class TestRandomKeyGenerator {
   @BeforeClass
   public static void init() throws Exception {
     OzoneConfiguration conf = new OzoneConfiguration();
-    cluster = MiniOzoneCluster.newBuilder(conf).setNumDatanodes(5).build();
+    cluster = MiniOzoneCluster.newBuilder(conf).setNumDatanodes(3).build();
     cluster.waitForClusterToBeReady();
   }
 
@@ -64,7 +65,7 @@ public class TestRandomKeyGenerator {
     t.start();
   }
 
-  @Test
+  @Test @Ignore
   public void defaultTest() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
@@ -85,7 +86,7 @@ public class TestRandomKeyGenerator {
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
   }
 
-  @Test
+  @Test @Ignore
   public void multiThread() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
@@ -108,7 +109,7 @@ public class TestRandomKeyGenerator {
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
   }
 
-  @Test
+  @Test @Ignore
   public void ratisTest3() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
@@ -148,7 +149,7 @@ public class TestRandomKeyGenerator {
 
     GenericTestUtils.waitFor(
         () -> 1 == randomKeyGenerator.getSuccessfulValidationCount(),
-        100, 120_000);
+        100, 600_000);
 
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
@@ -156,7 +157,7 @@ public class TestRandomKeyGenerator {
     Assert.assertEquals(1, randomKeyGenerator.getSuccessfulValidationCount());
   }
 
-  @Test
+  @Test @Ignore
   public void fileWithSizeZero() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
@@ -181,7 +182,7 @@ public class TestRandomKeyGenerator {
     Assert.assertEquals(1, randomKeyGenerator.getSuccessfulValidationCount());
   }
 
-  @Test
+  @Test @Ignore
   public void testThreadPoolSize() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
