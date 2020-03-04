@@ -23,8 +23,6 @@ import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.ozone.MiniOzoneCluster;
 import org.apache.hadoop.test.GenericTestUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -49,7 +47,6 @@ public abstract class TestDataValidate {
 
   @Test
   public void ratisTestLargeKey() throws Exception {
-    Logger.getRootLogger().setLevel(Level.DEBUG);
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
     randomKeyGenerator.setNumOfVolumes(1);
