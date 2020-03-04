@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -205,9 +206,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
   private AtomicInteger numberOfBucketsCreated;
   private AtomicLong numberOfKeysAdded;
 
-  private Long totalWritesValidated;
-  private Long writeValidationSuccessCount;
-  private Long writeValidationFailureCount;
+  private long totalWritesValidated;
+  private long writeValidationSuccessCount;
+  private long writeValidationFailureCount;
 
   private BlockingQueue<KeyValidate> validationQueue;
   private ArrayList<Histogram> histograms = new ArrayList<>();
@@ -219,8 +220,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
   }
 
   @VisibleForTesting
-  RandomKeyGenerator(OzoneConfiguration ozoneConfiguration) {
+  RandomKeyGenerator(OzoneConfiguration ozoneConfiguration) throws IOException {
     this.ozoneConfiguration = ozoneConfiguration;
+    init(ozoneConfiguration);
   }
 
   public void init(OzoneConfiguration configuration) throws IOException {
@@ -234,6 +236,9 @@ public final class RandomKeyGenerator implements Callable<Void> {
     numberOfVolumesCreated = new AtomicInteger();
     numberOfBucketsCreated = new AtomicInteger();
     numberOfKeysAdded = new AtomicLong();
+    totalWritesValidated = 0L;
+    writeValidationSuccessCount = 0L;
+    writeValidationFailureCount = 0L;
     volumeCounter = new AtomicInteger();
     bucketCounter = new AtomicInteger();
     keyCounter = new AtomicLong();
@@ -241,6 +246,15 @@ public final class RandomKeyGenerator implements Callable<Void> {
     buckets = new ConcurrentHashMap<>();
     ozoneClient = OzoneClientFactory.getClient(configuration);
     objectStore = ozoneClient.getObjectStore();
+
+    if (!configuration.getBoolean(
+        HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA,
+        HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA_DEFAULT)) {
+      LOG.info("Override validateWrites to false, because "
+          + HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA + " is set to false.");
+      validateWrites = false;
+    }
+
     for (FreonOps ops : FreonOps.values()) {
       histograms.add(ops.ordinal(), new Histogram(new UniformReservoir()));
     }
@@ -250,17 +264,8 @@ public final class RandomKeyGenerator implements Callable<Void> {
   }
 
   @Override
-  public Void call() throws Exception {
-    if (ozoneConfiguration != null) {
-      if (!ozoneConfiguration.getBoolean(
-          HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA,
-          HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA_DEFAULT)) {
-        LOG.info("Override validateWrites to false, because "
-            + HddsConfigKeys.HDDS_CONTAINER_PERSISTDATA + " is set to false.");
-        validateWrites = false;
-      }
-      init(ozoneConfiguration);
-    } else {
+  public Void call() throws IOException, InterruptedException {
+    if (ozoneConfiguration == null) {
       init(freon.createOzoneConfiguration());
     }
 
@@ -297,10 +302,6 @@ public final class RandomKeyGenerator implements Callable<Void> {
 
     Thread validator = null;
     if (validateWrites) {
-      totalWritesValidated = 0L;
-      writeValidationSuccessCount = 0L;
-      writeValidationFailureCount = 0L;
-
       validationQueue = new LinkedBlockingQueue<>();
       validator = new Thread(new Validator());
       validator.start();
@@ -1102,5 +1103,15 @@ public final class RandomKeyGenerator implements Callable<Void> {
   @VisibleForTesting
   public int getThreadPoolSize() {
     return threadPoolSize;
+  }
+
+  void run() {
+    try {
+      call();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 }

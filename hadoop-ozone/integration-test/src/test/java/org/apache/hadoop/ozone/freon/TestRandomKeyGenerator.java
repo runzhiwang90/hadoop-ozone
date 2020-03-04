@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -22,6 +22,7 @@ import org.apache.hadoop.hdds.client.ReplicationFactor;
 import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.ozone.MiniOzoneCluster;
+import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -33,7 +34,6 @@ import org.junit.Test;
 public class TestRandomKeyGenerator {
 
   private static MiniOzoneCluster cluster;
-  private static OzoneConfiguration conf;
 
   /**
    * Create a MiniDFSCluster for testing.
@@ -43,7 +43,7 @@ public class TestRandomKeyGenerator {
    */
   @BeforeClass
   public static void init() throws Exception {
-    conf = new OzoneConfiguration();
+    OzoneConfiguration conf = new OzoneConfiguration();
     cluster = MiniOzoneCluster.newBuilder(conf).setNumDatanodes(5).build();
     cluster.waitForClusterToBeReady();
   }
@@ -58,6 +58,12 @@ public class TestRandomKeyGenerator {
     }
   }
 
+  static void runInBackground(RandomKeyGenerator subject) {
+    Thread t = new Thread(subject::run);
+    t.setName("RandomKeyGenerator");
+    t.start();
+  }
+
   @Test
   public void defaultTest() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
@@ -67,7 +73,13 @@ public class TestRandomKeyGenerator {
     randomKeyGenerator.setNumOfKeys(10);
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.call();
+
+    runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 100 == randomKeyGenerator.getNumberOfKeysAdded(),
+        100, 120_000);
+
     Assert.assertEquals(2, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
@@ -84,7 +96,13 @@ public class TestRandomKeyGenerator {
     randomKeyGenerator.setKeySize(10240);
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.call();
+
+    runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 100 == randomKeyGenerator.getNumberOfKeysAdded(),
+        100, 120_000);
+
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
@@ -101,7 +119,13 @@ public class TestRandomKeyGenerator {
     randomKeyGenerator.setKeySize(10240);
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setType(ReplicationType.RATIS);
-    randomKeyGenerator.call();
+
+    runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 100 == randomKeyGenerator.getNumberOfKeysAdded(),
+        100, 120_000);
+
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
@@ -119,7 +143,13 @@ public class TestRandomKeyGenerator {
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setType(ReplicationType.RATIS);
     randomKeyGenerator.setValidateWrites(true);
-    randomKeyGenerator.call();
+
+    runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 1 == randomKeyGenerator.getSuccessfulValidationCount(),
+        100, 120_000);
+
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
@@ -138,7 +168,13 @@ public class TestRandomKeyGenerator {
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setType(ReplicationType.RATIS);
     randomKeyGenerator.setValidateWrites(true);
-    randomKeyGenerator.call();
+
+    runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 1 == randomKeyGenerator.getSuccessfulValidationCount(),
+        100, 120_000);
+
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
@@ -155,7 +191,13 @@ public class TestRandomKeyGenerator {
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setType(ReplicationType.RATIS);
     randomKeyGenerator.setNumOfThreads(10);
-    randomKeyGenerator.call();
+
+    runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 1 == randomKeyGenerator.getNumberOfKeysAdded(),
+        100, 120_000);
+
     Assert.assertEquals(10, randomKeyGenerator.getThreadPoolSize());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
   }

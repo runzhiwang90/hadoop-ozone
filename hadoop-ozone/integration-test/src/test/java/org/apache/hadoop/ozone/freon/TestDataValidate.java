@@ -22,6 +22,7 @@ import org.apache.hadoop.hdds.client.ReplicationFactor;
 import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.ozone.MiniOzoneCluster;
+import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -55,7 +56,13 @@ public abstract class TestDataValidate {
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
     randomKeyGenerator.setKeySize(20971520);
     randomKeyGenerator.setValidateWrites(true);
-    randomKeyGenerator.call();
+
+    TestRandomKeyGenerator.runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 1 == randomKeyGenerator.getNumberOfKeysAdded(),
+        100, 120_000);
+
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(1, randomKeyGenerator.getNumberOfKeysAdded());
@@ -72,15 +79,20 @@ public abstract class TestDataValidate {
     randomKeyGenerator.setValidateWrites(true);
     randomKeyGenerator.setType(ReplicationType.RATIS);
     randomKeyGenerator.setFactor(ReplicationFactor.THREE);
-    randomKeyGenerator.call();
+
+    TestRandomKeyGenerator.runInBackground(randomKeyGenerator);
+
+    GenericTestUtils.waitFor(
+        () -> 100 == randomKeyGenerator.getTotalKeysValidated(),
+        100, 120_000);
+
     Assert.assertEquals(2, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
     Assert.assertTrue(randomKeyGenerator.getValidateWrites());
-    Assert.assertNotEquals(0, randomKeyGenerator.getTotalKeysValidated());
-    Assert.assertNotEquals(0, randomKeyGenerator
-        .getSuccessfulValidationCount());
-    Assert.assertEquals(0, randomKeyGenerator
-        .getUnsuccessfulValidationCount());
+    Assert.assertEquals(100, randomKeyGenerator.getTotalKeysValidated());
+    Assert.assertEquals(100, randomKeyGenerator.getSuccessfulValidationCount());
+    Assert.assertEquals(0, randomKeyGenerator.getUnsuccessfulValidationCount());
   }
+
 }
