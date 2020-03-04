@@ -70,7 +70,7 @@ public class TestRandomKeyGenerator {
     THREAD_FACTORY.newThread(subject::run).start();
   }
 
-  @Test @Ignore
+  @Test
   public void defaultTest() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
@@ -89,9 +89,10 @@ public class TestRandomKeyGenerator {
     Assert.assertEquals(2, randomKeyGenerator.getNumberOfVolumesCreated());
     Assert.assertEquals(10, randomKeyGenerator.getNumberOfBucketsCreated());
     Assert.assertEquals(100, randomKeyGenerator.getNumberOfKeysAdded());
+    Assert.assertEquals(10, randomKeyGenerator.getThreadPoolSize());
   }
 
-  @Test @Ignore
+  @Test
   public void multiThread() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
@@ -164,7 +165,7 @@ public class TestRandomKeyGenerator {
     Assert.assertEquals(1, randomKeyGenerator.getSuccessfulValidationCount());
   }
 
-  @Test @Ignore
+  @Test
   public void testThreadPoolSize() throws Exception {
     RandomKeyGenerator randomKeyGenerator =
         new RandomKeyGenerator((OzoneConfiguration) cluster.getConf());
