@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.ozone.freon;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.hdds.client.ReplicationFactor;
 import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
@@ -29,12 +30,18 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.concurrent.ThreadFactory;
+
 /**
  * Tests Freon, with MiniOzoneCluster.
  */
 public class TestRandomKeyGenerator {
 
   private static MiniOzoneCluster cluster;
+
+  private static final ThreadFactory THREAD_FACTORY = new ThreadFactoryBuilder()
+      .setNameFormat("RandomKeyGenerator-%d")
+      .build();
 
   /**
    * Create a MiniDFSCluster for testing.
@@ -60,9 +67,7 @@ public class TestRandomKeyGenerator {
   }
 
   static void runInBackground(RandomKeyGenerator subject) {
-    Thread t = new Thread(subject::run);
-    t.setName("RandomKeyGenerator");
-    t.start();
+    THREAD_FACTORY.newThread(subject::run).start();
   }
 
   @Test @Ignore
