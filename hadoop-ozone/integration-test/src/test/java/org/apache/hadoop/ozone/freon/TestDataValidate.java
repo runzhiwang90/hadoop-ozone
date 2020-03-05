@@ -33,7 +33,7 @@ public abstract class TestDataValidate {
 
   static void startCluster(OzoneConfiguration conf) throws Exception {
     cluster = MiniOzoneCluster.newBuilder(conf)
-        .setNumDatanodes(5).setTotalPipelineNumLimit(8).build();
+        .setNumDatanodes(3).build();
     cluster.waitForClusterToBeReady();
   }
 
