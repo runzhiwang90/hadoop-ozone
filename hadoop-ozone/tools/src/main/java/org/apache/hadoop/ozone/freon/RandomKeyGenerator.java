@@ -42,6 +42,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentracing.Scope;
 import io.opentracing.util.GlobalTracer;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdds.HddsConfigKeys;
 import org.apache.hadoop.hdds.cli.HddsVersionProvider;
@@ -1059,7 +1060,7 @@ public final class RandomKeyGenerator implements Callable<Void> {
                   kv.digest, curDigest);
             }
             totalWritesValidated.incrementAndGet();
-            is.close();
+            IOUtils.closeQuietly(is);
           }
         } catch (IOException ex) {
           LOG.error("Exception while validating write.", ex);
