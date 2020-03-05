@@ -116,25 +116,25 @@ public class TestRandomKeyGenerator {
   }
 
   @Test
-  public void test1() throws Exception {
+  public void fewRegularKeys() throws Exception {
     runTest(2, 4, 8, 10240, 4, false,
         cluster.getConf());
   }
 
   @Test
-  public void test2() throws Exception {
-    runTest(8, 4, 128, 16, 8, false,
+  public void manySmallKeys() throws Exception {
+    runTest(8, 16, 128, 16, 8, false,
         cluster.getConf());
   }
 
   @Test
-  public void bigFileThan2GB() throws Exception {
+  public void oneHugeKey() throws Exception {
     runTest(1, 1, 1, 10L + Integer.MAX_VALUE, 10, true,
         cluster.getConf());
   }
 
   @Test
-  public void emptyFile() throws Exception {
+  public void emptyKey() throws Exception {
     runTest(1, 1, 1, 0, 10, true,
         cluster.getConf());
   }
