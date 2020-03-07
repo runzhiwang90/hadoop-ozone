@@ -556,12 +556,15 @@ public class SCMPipelineManager implements PipelineManager {
    * @throws IOException
    */
   protected void removePipeline(PipelineID pipelineId) throws IOException {
+    byte[] key = pipelineId.getProtobuf().toByteArray();
     lock.writeLock().lock();
     try {
-      pipelineStore.delete(pipelineId.getProtobuf().toByteArray());
-      Pipeline pipeline = stateManager.removePipeline(pipelineId);
-      nodeManager.removePipeline(pipeline);
-      metrics.incNumPipelineDestroyed();
+      if (pipelineStore != null) {
+        pipelineStore.delete(key);
+        Pipeline pipeline = stateManager.removePipeline(pipelineId);
+        nodeManager.removePipeline(pipeline);
+        metrics.incNumPipelineDestroyed();
+      }
     } catch (IOException ex) {
       metrics.incNumPipelineDestroyFailed();
       throw ex;
@@ -582,10 +585,16 @@ public class SCMPipelineManager implements PipelineManager {
       scheduler = null;
     }
 
-    if (pipelineStore != null) {
-      pipelineStore.close();
-      pipelineStore = null;
+    lock.writeLock().lock();
+    try {
+      if (pipelineStore != null) {
+        pipelineStore.close();
+        pipelineStore = null;
+      }
+    } finally {
+        lock.writeLock().unlock();
     }
+
     if(pmInfoBean != null) {
       MBeans.unregister(this.pmInfoBean);
       pmInfoBean = null;
