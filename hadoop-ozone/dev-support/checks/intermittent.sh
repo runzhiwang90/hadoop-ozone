@@ -26,7 +26,7 @@ export MAVEN_OPTS="-Xmx4096m"
 mvn -B install -DskipTests
 
 rc=0
-for i in {1..50}; do
+for i in {1..20}; do
   original_report_dir="${REPORT_DIR}"
   REPORT_DIR="${original_report_dir}/iteration${i}"
   mkdir -p "${REPORT_DIR}"
