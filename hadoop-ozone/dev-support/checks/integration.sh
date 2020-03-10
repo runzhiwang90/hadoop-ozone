@@ -43,6 +43,8 @@ for i in {1..20}; do
 
   if [[ ${rc} == 0 ]]; then
     rc=${irc}
+  fi
+  if [[ ${rc} != 0 ]]; then
     break # stop on first failure
   fi
 done
