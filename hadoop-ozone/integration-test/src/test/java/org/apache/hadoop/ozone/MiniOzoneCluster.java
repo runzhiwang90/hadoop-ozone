@@ -19,9 +19,11 @@ package org.apache.hadoop.ozone;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.StorageUnit;
+import org.apache.hadoop.hdds.conf.DatanodeRatisServerConfig;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.DatanodeDetails;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
+import org.apache.hadoop.hdds.ratis.RatisHelper;
 import org.apache.hadoop.hdds.scm.server.StorageContainerManager;
 import org.apache.hadoop.hdds.security.x509.certificate.client.CertificateClient;
 import org.apache.hadoop.ozone.client.OzoneClient;
@@ -37,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -267,6 +270,25 @@ public interface MiniOzoneCluster {
    */
   void shutdownHddsDatanodes();
 
+  static void setDefaultTimeoutsForTest(OzoneConfiguration conf) {
+    conf.setTimeDuration(RatisHelper.HDDS_DATANODE_RATIS_SERVER_PREFIX_KEY
+        + "." + DatanodeRatisServerConfig.RATIS_SERVER_REQUEST_TIMEOUT_KEY,
+        3, TimeUnit.SECONDS);
+    conf.setTimeDuration(
+        RatisHelper.HDDS_DATANODE_RATIS_SERVER_PREFIX_KEY + "." +
+            DatanodeRatisServerConfig.
+                RATIS_SERVER_WATCH_REQUEST_TIMEOUT_KEY,
+        3, TimeUnit.SECONDS);
+    conf.setTimeDuration(
+        RatisHelper.HDDS_DATANODE_RATIS_CLIENT_PREFIX_KEY+ "." +
+            "rpc.request.timeout",
+        3, TimeUnit.SECONDS);
+    conf.setTimeDuration(
+        RatisHelper.HDDS_DATANODE_RATIS_CLIENT_PREFIX_KEY+ "." +
+            "watch.request.timeout",
+        3, TimeUnit.SECONDS);
+  }
+
   /**
    * Builder class for MiniOzoneCluster.
    */
@@ -311,6 +333,7 @@ public interface MiniOzoneCluster {
 
     protected Builder(OzoneConfiguration conf) {
       this.conf = conf;
+      setDefaultTimeoutsForTest(conf);
       setClusterId(UUID.randomUUID().toString());
     }
 
