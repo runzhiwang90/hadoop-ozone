@@ -25,6 +25,8 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.GatheringByteChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -106,12 +108,13 @@ public final class ChunkUtils {
         d -> writeDataToFile(file, d, offset, sync));
   }
 
-  public static void writeData(FileChannel file, String filename,
-      ChunkBuffer data, long offset, long len, VolumeIOStats volumeIOStats
+  public static <T extends SeekableByteChannel & GatheringByteChannel> void
+      writeData(T channel, String filename, ChunkBuffer data,
+      long offset, long len, VolumeIOStats volumeIOStats
   ) throws StorageContainerException {
 
     writeData(data, filename, offset, len, volumeIOStats,
-        d -> writeDataToChannel(file, d, offset));
+        d -> writeDataToChannel(channel, d, offset));
   }
 
   private static void writeData(ChunkBuffer data, String filename,
@@ -159,8 +162,8 @@ public final class ChunkUtils {
     });
   }
 
-  private static long writeDataToChannel(FileChannel channel, ChunkBuffer data,
-      long offset) {
+  private static <T extends SeekableByteChannel & GatheringByteChannel>
+      long writeDataToChannel(T channel, ChunkBuffer data, long offset) {
     try {
       channel.position(offset);
       return data.writeTo(channel);

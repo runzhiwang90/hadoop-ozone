@@ -67,6 +67,7 @@ public final class ChunkManagerFactory {
       return new ChunkManagerDummyImpl();
     }
 
-    return new ChunkManagerDispatcher(sync);
+    // TODO add config for bufferSize
+    return new ChunkManagerDispatcher(sync, 32768, true);
   }
 }

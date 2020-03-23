@@ -116,7 +116,7 @@ public class TestChunkManager {
         .getLocalID(), 0), 0, bytes.length);
 
     // Create a ChunkManager object.
-    chunkManager = new ChunkManagerDispatcher(true);
+    chunkManager = new ChunkManagerDispatcher();
   }
 
   private DispatcherContext getDispatcherContext() {

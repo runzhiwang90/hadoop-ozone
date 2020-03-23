@@ -55,9 +55,14 @@ public class ChunkManagerDispatcher implements ChunkManager {
   private final Map<ChunkLayOutVersion, ChunkManager> handlers
       = new EnumMap<>(ChunkLayOutVersion.class);
 
-  ChunkManagerDispatcher(boolean sync) {
+  ChunkManagerDispatcher() {
+    this(true, 8192, true);
+  }
+
+  ChunkManagerDispatcher(boolean sync, int bufferSize, boolean allowBypass) {
     handlers.put(FILE_PER_CHUNK, new FilePerChunkStrategy(sync));
-    handlers.put(FILE_PER_BLOCK, new FilePerBlockStrategy(sync));
+    handlers.put(FILE_PER_BLOCK, new FilePerBlockStrategy(sync, bufferSize,
+        allowBypass));
   }
 
   @Override

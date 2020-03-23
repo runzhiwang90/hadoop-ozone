@@ -30,6 +30,7 @@ import org.apache.hadoop.ozone.common.ChunkBuffer;
 import org.apache.hadoop.ozone.container.common.helpers.BlockData;
 import org.apache.hadoop.ozone.container.common.helpers.ChunkInfo;
 import org.apache.hadoop.ozone.container.common.transport.server.ratis.DispatcherContext;
+import org.apache.hadoop.ozone.container.common.utils.BufferedFileChannel;
 import org.apache.hadoop.ozone.container.keyvalue.KeyValueContainer;
 import org.apache.hadoop.ozone.container.keyvalue.KeyValueContainerData;
 import org.apache.hadoop.ozone.container.common.volume.HddsVolume;
@@ -42,12 +43,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 
@@ -64,11 +62,19 @@ public class FilePerBlockStrategy implements ChunkManager {
   private static final Logger LOG =
       LoggerFactory.getLogger(FilePerBlockStrategy.class);
 
+  private static final RemovalListener<String, OpenFile> ON_REMOVE =
+      event -> close(event.getKey(), event.getValue());
+
   private final boolean doSyncWrite;
+  private final int bufferSize;
+  private final boolean allowBypass;
   private final OpenFiles files = new OpenFiles();
 
-  public FilePerBlockStrategy(boolean sync) {
+  public FilePerBlockStrategy(boolean sync, int bufferSize,
+      boolean allowBypass) {
     doSyncWrite = sync;
+    this.bufferSize = bufferSize;
+    this.allowBypass = allowBypass;
   }
 
   private static void checkLayoutVersion(Container container) {
@@ -115,7 +121,7 @@ public class FilePerBlockStrategy implements ChunkManager {
     HddsVolume volume = containerData.getVolume();
     VolumeIOStats volumeIOStats = volume.getVolumeIOStats();
 
-    FileChannel channel = files.getChannel(chunkFile, doSyncWrite);
+    BufferedFileChannel channel = files.getChannel(chunkFile);
     ChunkUtils.writeData(channel, chunkFile.getName(), data, offset, len,
         volumeIOStats);
 
@@ -217,21 +223,30 @@ public class FilePerBlockStrategy implements ChunkManager {
     return new File(chunkDir, blockID.getLocalID() + ".block");
   }
 
-  private static final class OpenFiles {
+  private static void close(String filename, OpenFile openFile) {
+    if (openFile != null) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Closing file {}", filename);
+      }
+      openFile.close();
+    } else {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("File {} not open", filename);
+      }
+    }
+  }
 
-    private static final RemovalListener<String, OpenFile> ON_REMOVE =
-        event -> close(event.getKey(), event.getValue());
+  private final class OpenFiles {
 
     private final Cache<String, OpenFile> files = CacheBuilder.newBuilder()
         .expireAfterAccess(Duration.ofMinutes(10))
         .removalListener(ON_REMOVE)
         .build();
 
-    public FileChannel getChannel(File file, boolean sync)
+    public BufferedFileChannel getChannel(File file)
         throws StorageContainerException {
       try {
-        return files.get(file.getAbsolutePath(),
-            () -> open(file, sync)).getChannel();
+        return files.get(file.getAbsolutePath(), () -> open(file)).getChannel();
       } catch (ExecutionException e) {
         if (e.getCause() instanceof IOException) {
           throw new UncheckedIOException((IOException) e.getCause());
@@ -241,10 +256,10 @@ public class FilePerBlockStrategy implements ChunkManager {
       }
     }
 
-    private static OpenFile open(File file, boolean sync) {
+    private OpenFile open(File file) {
       try {
-        return new OpenFile(file, sync);
-      } catch (FileNotFoundException e) {
+        return new OpenFile(file, doSyncWrite, bufferSize, allowBypass);
+      } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
     }
@@ -255,34 +270,24 @@ public class FilePerBlockStrategy implements ChunkManager {
       }
     }
 
-    private static void close(String filename, OpenFile openFile) {
-      if (openFile != null) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Closing file {}", filename);
-        }
-        openFile.close();
-      } else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("File {} not open", filename);
-        }
-      }
-    }
   }
 
   private static final class OpenFile {
 
-    private final RandomAccessFile file;
+    private final BufferedFileChannel file;
 
-    private OpenFile(File file, boolean sync) throws FileNotFoundException {
-      String mode = sync ? "rws" : "rw";
-      this.file = new RandomAccessFile(file, mode);
+    private OpenFile(File file, boolean sync, int bufferSize,
+        boolean allowBypass) throws IOException {
+      ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+      this.file =
+          BufferedFileChannel.open(file, true, buffer, sync, allowBypass);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Opened file {}", file);
       }
     }
 
-    public FileChannel getChannel() {
-      return file.getChannel();
+    public BufferedFileChannel getChannel() {
+      return file;
     }
 
     public void close() {
