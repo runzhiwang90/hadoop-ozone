@@ -18,8 +18,10 @@
 package org.apache.hadoop.ozone.container.common.utils;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import org.apache.commons.io.IOUtils;
-import org.apache.ratis.util.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -39,6 +41,9 @@ import java.nio.channels.SeekableByteChannel;
 public class BufferedFileChannel
     implements Flushable, GatheringByteChannel, SeekableByteChannel {
 
+  private static final Logger LOG =
+      LoggerFactory.getLogger(BufferedFileChannel.class);
+
   private final Closeable file;
   private final FileChannel channel;
   private final ByteBuffer writeBuffer;
@@ -56,7 +61,11 @@ public class BufferedFileChannel
     } else {
       fc.truncate(0);
     }
-    Preconditions.assertSame(fc.size(), fc.position(), "fc.position");
+    Preconditions.checkState(fc.size() == fc.position(), "fc.position");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Opened {} for write, position: {}, size: {}", file,
+          fc.position(), fc.size());
+    }
     return new BufferedFileChannel(fc, buffer, allowBypass, raf);
   }
 
@@ -131,12 +140,40 @@ public class BufferedFileChannel
 
   @Override
   public long position() throws IOException {
-    return channel.position();
+    long filePosition = channel.position();
+    if (filePosition < channel.size()) {
+      return filePosition;
+    }
+
+    return filePosition + writeBuffer.position();
   }
 
   @Override
   public SeekableByteChannel position(long newPosition) throws IOException {
-    channel.position(newPosition);
+    Preconditions.checkArgument(newPosition >= 0);
+
+    long filePosition = channel.position();
+    long fileSize = channel.size();
+    long bufferPosition = writeBuffer.position();
+    long bufferSize = writeBuffer.limit();
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Current position {}+{}, size {}+{}, seeking to {}",
+          filePosition, bufferPosition, fileSize, bufferSize, newPosition);
+    }
+
+    if (newPosition <= fileSize) {
+      channel.position(newPosition);
+      writeBuffer.position(0);
+    } else if (newPosition <= fileSize + bufferSize) {
+      channel.position(fileSize);
+      writeBuffer.position(Math.toIntExact(newPosition - fileSize));
+    } else {
+      throw new UnsupportedOperationException(String.format("Seeking beyond " +
+          "end of file is not supported: %s + %s < %s",
+          fileSize, bufferSize, newPosition));
+    }
+
     return this;
   }
 
@@ -182,7 +219,11 @@ public class BufferedFileChannel
     }
 
     writeBuffer.flip();
-    drainBuffer(writeBuffer);
+    int written = drainBuffer(writeBuffer);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Written {} bytes to file, new position: {}, new size: {}",
+          written, channel.position(), channel.size());
+    }
     writeBuffer.clear();
   }
 

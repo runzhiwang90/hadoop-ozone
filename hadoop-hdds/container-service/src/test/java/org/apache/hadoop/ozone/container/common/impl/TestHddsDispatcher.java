@@ -66,6 +66,7 @@ import java.util.function.Consumer;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.hadoop.hdds.scm.ScmConfigKeys.HDDS_DATANODE_DIR_KEY;
 import static org.apache.hadoop.hdds.scm.protocolPB.ContainerCommandResponseBuilders.getContainerCommandResponse;
+import static org.apache.hadoop.ozone.container.ContainerTestHelper.getPutBlockRequest;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -158,12 +159,15 @@ public class TestHddsDispatcher {
       response = hddsDispatcher.dispatch(writeChunkRequest, null);
       // container should be created as part of write chunk request
       Assert.assertEquals(ContainerProtos.Result.SUCCESS, response.getResult());
+      WriteChunkRequestProto writeChunk = writeChunkRequest.getWriteChunk();
+      hddsDispatcher.dispatch(
+          getPutBlockRequest(dd.getUuid(), null, writeChunk), null);
       // send read chunk request to read the chunk written above
       response =
           hddsDispatcher.dispatch(getReadChunkRequest(writeChunkRequest), null);
       Assert.assertEquals(ContainerProtos.Result.SUCCESS, response.getResult());
       Assert.assertEquals(response.getReadChunk().getData(),
-          writeChunkRequest.getWriteChunk().getData());
+          writeChunk.getData());
     } finally {
       FileUtils.deleteDirectory(new File(testDir));
     }

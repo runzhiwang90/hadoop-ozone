@@ -67,7 +67,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -387,10 +386,10 @@ public class TestContainerPersistence {
   @Test
   public void testWritReadManyChunks() throws IOException {
     final int datalen = 1024;
-    final int chunkCount = 1024;
+    final int chunkCount = 40; //1024;
 
     long testContainerID = getTestContainerID();
-    Container container = addContainer(containerSet, testContainerID);
+    KeyValueContainer container = addContainer(containerSet, testContainerID);
 
     BlockID blockID = ContainerTestHelper.getTestBlockID(testContainerID);
     List<ChunkInfo> chunks = new ArrayList<>(chunkCount);
@@ -402,11 +401,10 @@ public class TestContainerPersistence {
           getDispatcherContext());
       chunks.add(info);
     }
+    chunkManager.finishWriteChunk(container, blockID, chunks.get(chunkCount-1));
 
-    KeyValueContainerData cNewData =
-        (KeyValueContainerData) container.getContainerData();
+    KeyValueContainerData cNewData = container.getContainerData();
     Assert.assertNotNull(cNewData);
-    Path dataDir = Paths.get(cNewData.getChunksPath());
 
     // Read chunk via file system and verify.
     Checksum checksum = new Checksum();
@@ -433,7 +431,7 @@ public class TestContainerPersistence {
     final int length = datalen / 2;
 
     long testContainerID = getTestContainerID();
-    Container container = addContainer(containerSet, testContainerID);
+    KeyValueContainer container = addContainer(containerSet, testContainerID);
 
     BlockID blockID = ContainerTestHelper.getTestBlockID(testContainerID);
     ChunkInfo info = getChunk(
@@ -442,6 +440,7 @@ public class TestContainerPersistence {
     setDataChecksum(info, data);
     chunkManager.writeChunk(container, blockID, info, data,
         getDispatcherContext());
+    chunkManager.finishWriteChunk(container, blockID, info);
 
     ChunkBuffer readData = chunkManager
         .readChunk(container, blockID, info, getDispatcherContext());
@@ -546,7 +545,7 @@ public class TestContainerPersistence {
       NoSuchAlgorithmException {
     final int datalen = 1024;
     long testContainerID = getTestContainerID();
-    Container container = addContainer(containerSet, testContainerID);
+    KeyValueContainer container = addContainer(containerSet, testContainerID);
 
     BlockID blockID = ContainerTestHelper.getTestBlockID(testContainerID);
     ChunkInfo info = getChunk(
@@ -555,6 +554,7 @@ public class TestContainerPersistence {
     setDataChecksum(info, data);
     chunkManager.writeChunk(container, blockID, info, data,
         getDispatcherContext());
+    chunkManager.finishWriteChunk(container, blockID, info);
     chunkManager.deleteChunk(container, blockID, info);
     exception.expect(StorageContainerException.class);
     chunkManager.readChunk(container, blockID, info, getDispatcherContext());

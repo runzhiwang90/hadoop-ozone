@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import com.google.common.base.Strings;
 import org.apache.hadoop.conf.StorageUnit;
@@ -412,8 +413,16 @@ public final class ContainerTestHelper {
       Pipeline pipeline, String token,
       ContainerProtos.WriteChunkRequestProto writeRequest)
       throws IOException {
-    LOG.trace("putBlock: {} to pipeline={} with token {}",
-        writeRequest.getBlockID(), pipeline, token);
+    UUID datanodeUUID = pipeline.getFirstNode().getUuid();
+    return getPutBlockRequest(datanodeUUID, token, writeRequest);
+  }
+
+  public static ContainerCommandRequestProto getPutBlockRequest(
+      UUID datanodeUUID, String token,
+      ContainerProtos.WriteChunkRequestProto writeRequest)
+      throws IOException {
+    LOG.trace("putBlock: {} from datanode {} with token {}",
+        writeRequest.getBlockID(), datanodeUUID, token);
 
     ContainerProtos.PutBlockRequestProto.Builder putRequest =
         ContainerProtos.PutBlockRequestProto.newBuilder();
@@ -431,7 +440,7 @@ public final class ContainerTestHelper {
     request.setCmdType(ContainerProtos.Type.PutBlock);
     request.setContainerID(blockData.getContainerID());
     request.setPutBlock(putRequest);
-    request.setDatanodeUuid(pipeline.getFirstNode().getUuidString());
+    request.setDatanodeUuid(datanodeUUID.toString());
     if (!Strings.isNullOrEmpty(token)) {
       request.setEncodedToken(token);
     }

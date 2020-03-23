@@ -52,7 +52,6 @@ import java.util.concurrent.ExecutionException;
 import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNSUPPORTED_REQUEST;
 import static org.apache.hadoop.ozone.container.common.impl.ChunkLayOutVersion.FILE_PER_BLOCK;
 import static org.apache.hadoop.ozone.container.common.transport.server.ratis.DispatcherContext.WriteChunkStage.COMMIT_DATA;
-import static org.apache.hadoop.ozone.container.keyvalue.helpers.ChunkUtils.validateChunkForOverwrite;
 
 /**
  * This class is for performing chunk related operations.
@@ -110,7 +109,11 @@ public class FilePerBlockStrategy implements ChunkManager {
         .getContainerData();
 
     File chunkFile = getChunkFile(containerData, blockID);
-    boolean overwrite = validateChunkForOverwrite(chunkFile, info);
+    BufferedFileChannel channel = files.getChannel(chunkFile);
+    boolean overwrite = ChunkUtils.isOverWriteRequested(channel, info);
+    if (overwrite) {
+      ChunkUtils.warnIfOverwriteNotPermitted(info);
+    }
     long len = info.getLen();
     long offset = info.getOffset();
     if (LOG.isDebugEnabled()) {
@@ -121,7 +124,6 @@ public class FilePerBlockStrategy implements ChunkManager {
     HddsVolume volume = containerData.getVolume();
     VolumeIOStats volumeIOStats = volume.getVolumeIOStats();
 
-    BufferedFileChannel channel = files.getChannel(chunkFile);
     ChunkUtils.writeData(channel, chunkFile.getName(), data, offset, len,
         volumeIOStats);
 

@@ -226,13 +226,17 @@ public final class ChunkUtils {
       ChunkInfo info) {
 
     if (isOverWriteRequested(chunkFile, info)) {
-      if (!isOverWritePermitted(info)) {
-        LOG.warn("Duplicate write chunk request. Chunk overwrite " +
-            "without explicit request. {}", info);
-      }
+      warnIfOverwriteNotPermitted(info);
       return true;
     }
     return false;
+  }
+
+  public static void warnIfOverwriteNotPermitted(ChunkInfo info) {
+    if (!isOverWritePermitted(info)) {
+      LOG.warn("Duplicate write chunk request. Chunk overwrite " +
+          "without explicit request. {}", info);
+    }
   }
 
   /**
@@ -284,6 +288,15 @@ public final class ChunkUtils {
 
     long offset = chunkInfo.getOffset();
     return offset < chunkFile.length();
+  }
+
+  public static boolean isOverWriteRequested(SeekableByteChannel channel,
+      ChunkInfo chunkInfo) throws StorageContainerException {
+    try {
+      return chunkInfo.getOffset() < channel.position();
+    } catch (IOException e) {
+      throw new StorageContainerException(e, CONTAINER_INTERNAL_ERROR);
+    }
   }
 
   /**
