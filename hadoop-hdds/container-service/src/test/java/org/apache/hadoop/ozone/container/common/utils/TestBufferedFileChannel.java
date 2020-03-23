@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.ozone.container.common.utils;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +29,8 @@ import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * Tests for {@link BufferedFileChannel}.
  */
@@ -37,6 +38,24 @@ public class TestBufferedFileChannel {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(TestBufferedFileChannel.class);
+
+  @Test
+  public void testWriteFromNonZeroPosition() throws Exception {
+    final int size = 10;
+    final ByteBuffer buffer = ByteBuffer.allocate(size);
+    final FakeFileChannel spy = new FakeFileChannel();
+    final BufferedFileChannel subject = new BufferedFileChannel(spy, buffer,
+        false, () -> {});
+    final ByteBuffer src = ByteBuffer.wrap("xxx01234".getBytes());
+    final int initialPosition = 3;
+    src.position(initialPosition);
+    final int remaining = src.remaining();
+
+    src.position(initialPosition);
+    int written = subject.write(src);
+
+    assertEquals(remaining, written);
+  }
 
   @Test
   public void testFlush() throws Exception {
@@ -54,7 +73,7 @@ public class TestBufferedFileChannel {
         allowBypass, () -> {});
 
     // write exactly buffer size, then flush.
-    int pos = 0, force = 0;
+    int pos = 0;
     pos = writeExactlyBufferSize(size, spy, subject, pos, pos);
     pos = writeLessThanBufferSize(size, spy, subject, pos, pos);
     pos = writeLessThanBufferSizeTwice(size, spy, subject, pos, pos);
@@ -67,7 +86,7 @@ public class TestBufferedFileChannel {
     spy.assertValues(pos, force);
     subject.write(ByteBuffer.allocate(size));
     pos += size;
-    spy.assertValues(pos,  0);
+    spy.assertValues(pos,  force);
     subject.flush();
     force = pos;
     spy.assertValues(pos, force);
@@ -124,8 +143,8 @@ public class TestBufferedFileChannel {
     private long forcedPosition = 0;
 
     void assertValues(long expectedPosition, long expectedForcedPosition) {
-      Assert.assertEquals(expectedPosition, position);
-      Assert.assertEquals(expectedForcedPosition, forcedPosition);
+      assertEquals(expectedPosition, position);
+      assertEquals(expectedForcedPosition, forcedPosition);
     }
 
     @Override
@@ -164,7 +183,7 @@ public class TestBufferedFileChannel {
 
     @Override
     public long position() {
-      throw new UnsupportedOperationException();
+      return position;
     }
 
     @Override
@@ -174,7 +193,7 @@ public class TestBufferedFileChannel {
 
     @Override
     public long size() {
-      throw new UnsupportedOperationException();
+      return position;
     }
 
     @Override

@@ -116,17 +116,17 @@ public class BufferedFileChannel
   @Override
   public int write(ByteBuffer src) throws IOException {
     final int limit = src.limit();
-    int offset = 0;
+    int written = 0;
     while (src.hasRemaining()) {
       if (allowBypass && writeBuffer.position() == 0 &&
           src.remaining() >= writeBuffer.limit()) {
-        offset += drainBuffer(src);
+        written += drainBuffer(src);
       } else {
-        int toPut = Math.min(src.remaining(), writeBuffer.remaining());
-        offset += toPut;
-        src.limit(offset);
+        final int toPut = Math.min(src.remaining(), writeBuffer.remaining());
+        src.limit(src.position() + toPut);
         try {
           writeBuffer.put(src);
+          written += toPut;
         } finally {
           src.limit(limit);
         }
@@ -135,7 +135,7 @@ public class BufferedFileChannel
         }
       }
     }
-    return offset;
+    return written;
   }
 
   @Override
