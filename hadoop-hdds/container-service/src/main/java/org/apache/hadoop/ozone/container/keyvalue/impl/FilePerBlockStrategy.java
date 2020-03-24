@@ -49,6 +49,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 
+import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNABLE_TO_FIND_CHUNK;
 import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNSUPPORTED_REQUEST;
 import static org.apache.hadoop.ozone.container.common.impl.ChunkLayOutVersion.FILE_PER_BLOCK;
 import static org.apache.hadoop.ozone.container.common.transport.server.ratis.DispatcherContext.WriteChunkStage.COMMIT_DATA;
@@ -149,6 +150,9 @@ public class FilePerBlockStrategy implements ChunkManager {
     VolumeIOStats volumeIOStats = volume.getVolumeIOStats();
 
     File chunkFile = getChunkFile(containerData, blockID);
+    if (!chunkFile.exists()) {
+      throw new StorageContainerException(UNABLE_TO_FIND_CHUNK);
+    }
     BufferedFileChannel channel = files.getChannel(chunkFile);
 
     long len = info.getLen();
