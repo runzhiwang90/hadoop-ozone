@@ -36,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
@@ -181,20 +182,27 @@ public final class ChunkUtils {
       long offset, long len, VolumeIOStats volumeIOStats)
       throws StorageContainerException {
 
-    final Path path = file.toPath();
+    readData(buf, file.getPath(), offset, len, volumeIOStats,
+        () -> readDataFromFile(file, buf, offset, len));
+  }
+
+  public static void readData(SeekableByteChannel channel, ByteBuffer buf,
+      String filename, long offset, long len, VolumeIOStats volumeIOStats)
+      throws StorageContainerException {
+
+    readData(buf, filename, offset, len, volumeIOStats,
+        () -> readDataFromChannel(channel, buf, offset));
+  }
+
+  private static void readData(ByteBuffer buf, String filename,
+      long offset, long len, VolumeIOStats volumeIOStats, LongSupplier reader)
+      throws StorageContainerException {
+
     final long startTime = Time.monotonicNow();
     final long bytesRead;
 
     try {
-      bytesRead = processFileExclusively(path, () -> {
-        try (FileChannel channel = open(path, READ_OPTIONS, NO_ATTRIBUTES);
-             FileLock ignored = channel.lock(offset, len, true)) {
-
-          return channel.read(buf, offset);
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
-      });
+      bytesRead = reader.getAsLong();
     } catch (UncheckedIOException e) {
       throw wrapInStorageContainerException(e.getCause());
     }
@@ -206,11 +214,35 @@ public final class ChunkUtils {
     volumeIOStats.incReadBytes(bytesRead);
 
     LOG.debug("Read {} bytes starting at offset {} from {}",
-        bytesRead, offset, file);
+        bytesRead, offset, filename);
 
     validateReadSize(len, bytesRead);
 
     buf.flip();
+  }
+
+  private static int readDataFromFile(File file, ByteBuffer buf,
+      long offset, long len) {
+    final Path path = file.toPath();
+    return processFileExclusively(path, () -> {
+      try (FileChannel channel = open(path, READ_OPTIONS, NO_ATTRIBUTES);
+           FileLock ignored = channel.lock(offset, len, true)) {
+
+        return channel.read(buf, offset);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    });
+  }
+
+  private static int readDataFromChannel(SeekableByteChannel channel,
+      ByteBuffer buf, long offset) {
+    try {
+      channel.position(offset);
+      return channel.read(buf);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   /**

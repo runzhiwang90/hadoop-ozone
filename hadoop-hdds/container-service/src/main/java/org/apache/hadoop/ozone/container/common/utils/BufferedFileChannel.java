@@ -109,30 +109,38 @@ public class BufferedFileChannel
   }
 
   @Override
-  public int read(ByteBuffer dst) {
-    throw new UnsupportedOperationException();
+  public int read(ByteBuffer dst) throws IOException {
+    int read = 0;
+    final long position = channel.position();
+    if (dst.hasRemaining() && position < channel.size()) {
+      read += channel.read(dst);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Read {} bytes from file from position {}", read, position);
+      }
+    }
+    int copied = copy(writeBuffer, dst);
+    if (copied > 0) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Copied {} bytes from buffer", copied);
+      }
+    }
+    read += copied;
+    return read;
   }
 
   @Override
   public int write(ByteBuffer src) throws IOException {
-    final int limit = src.limit();
     int written = 0;
     while (src.hasRemaining()) {
       if (allowBypass && writeBuffer.position() == 0 &&
           src.remaining() >= writeBuffer.limit()) {
         written += drainBuffer(src);
       } else {
-        final int toPut = Math.min(src.remaining(), writeBuffer.remaining());
-        src.limit(src.position() + toPut);
-        try {
-          writeBuffer.put(src);
-          written += toPut;
-        } finally {
-          src.limit(limit);
-        }
+        int copied = copy(src, writeBuffer);
+        written += copied;
         if (LOG.isDebugEnabled()) {
           LOG.debug("Written {} bytes into buffer, {} bytes remaining",
-              toPut, writeBuffer.remaining());
+              copied, writeBuffer.remaining());
         }
         if (writeBuffer.remaining() == 0) {
           flushBuffer();
@@ -249,4 +257,19 @@ public class BufferedFileChannel
     }
     return written;
   }
+
+  private static int copy(ByteBuffer src, ByteBuffer dst) {
+    final int toPut = Math.min(src.remaining(), dst.remaining());
+    if (toPut > 0) {
+      final int limit = src.limit();
+      src.limit(src.position() + toPut);
+      try {
+        dst.put(src);
+      } finally {
+        src.limit(limit);
+      }
+    }
+    return toPut;
+  }
+
 }

@@ -149,11 +149,13 @@ public class FilePerBlockStrategy implements ChunkManager {
     VolumeIOStats volumeIOStats = volume.getVolumeIOStats();
 
     File chunkFile = getChunkFile(containerData, blockID);
+    BufferedFileChannel channel = files.getChannel(chunkFile);
 
     long len = info.getLen();
     long offset = info.getOffset();
+    String path = chunkFile.getPath();
     ByteBuffer data = ByteBuffer.allocate((int) len);
-    ChunkUtils.readData(chunkFile, data, offset, len, volumeIOStats);
+    ChunkUtils.readData(channel, data, path, offset, len, volumeIOStats);
 
     return ChunkBuffer.wrap(data);
   }

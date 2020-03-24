@@ -17,10 +17,14 @@
  */
 package org.apache.hadoop.ozone.container.common.utils;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -29,6 +33,8 @@ import java.nio.channels.FileLock;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
+import static org.apache.hadoop.test.GenericTestUtils.getTestDir;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -38,6 +44,58 @@ public class TestBufferedFileChannel {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(TestBufferedFileChannel.class);
+
+  private static final File TEST_DIR =
+      getTestDir(TestBufferedFileChannel.class.getSimpleName());
+
+  @BeforeClass
+  public static void setup() {
+    TEST_DIR.mkdirs();
+  }
+
+  @AfterClass
+  public static void cleanup() throws IOException {
+    FileUtils.deleteDirectory(TEST_DIR);
+  }
+
+  @Test
+  public void testReadOnlyFromFile() throws IOException {
+    // all of content is written to disk due to flush
+    testReadAfterWrite(20, "readFile", true, "some text");
+  }
+
+  @Test
+  public void testReadFromBoth() throws IOException {
+    // part of content is written to disk as it does not fit buffer
+    testReadAfterWrite(5, "readBoth", false, "qwerty asdf");
+  }
+
+  @Test
+  public void testReadOnlyFromBuffer() throws IOException {
+    // content is still in buffer as it fits, and not flushed
+    testReadAfterWrite(64, "readBuffer", false,
+        "testing read from buffer");
+  }
+
+  private static void testReadAfterWrite(int size, String filename,
+      boolean flush, String text) throws IOException {
+    final ByteBuffer buffer = ByteBuffer.allocate(size);
+    final File file = new File(TEST_DIR, filename);
+    file.createNewFile();
+    final BufferedFileChannel subject = BufferedFileChannel.open(file,
+        false, buffer, true, false);
+    final byte[] content = text.getBytes();
+    subject.write(ByteBuffer.wrap(content));
+    if (flush) {
+      subject.flush();
+    }
+
+    ByteBuffer read = ByteBuffer.allocate(content.length);
+    subject.position(0);
+    subject.read(read);
+
+    assertArrayEquals(content, read.array());
+  }
 
   @Test
   public void testWriteFromNonZeroPosition() throws Exception {
@@ -49,12 +107,12 @@ public class TestBufferedFileChannel {
     final ByteBuffer src = ByteBuffer.wrap("xxx01234".getBytes());
     final int initialPosition = 3;
     src.position(initialPosition);
-    final int remaining = src.remaining();
+    final int expectedWritten = src.remaining();
 
     src.position(initialPosition);
     int written = subject.write(src);
 
-    assertEquals(remaining, written);
+    assertEquals(expectedWritten, written);
   }
 
   @Test
