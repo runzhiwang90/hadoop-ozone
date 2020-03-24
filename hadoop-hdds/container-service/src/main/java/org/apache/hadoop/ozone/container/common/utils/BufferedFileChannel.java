@@ -130,6 +130,10 @@ public class BufferedFileChannel
         } finally {
           src.limit(limit);
         }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Written {} bytes into buffer, {} bytes remaining",
+              toPut, writeBuffer.remaining());
+        }
         if (writeBuffer.remaining() == 0) {
           flushBuffer();
         }
@@ -157,8 +161,8 @@ public class BufferedFileChannel
     long bufferPosition = writeBuffer.position();
     long bufferSize = writeBuffer.limit();
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Current position {}+{}, size {}+{}, seeking to {}",
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Current position {}+{}, size {}+{}, seeking to {}",
           filePosition, bufferPosition, fileSize, bufferSize, newPosition);
     }
 
@@ -220,8 +224,8 @@ public class BufferedFileChannel
 
     writeBuffer.flip();
     int written = drainBuffer(writeBuffer);
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Written {} bytes to file, new position: {}, new size: {}",
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Written {} bytes to file, new position: {}, new size: {}",
           written, channel.position(), channel.size());
     }
     writeBuffer.clear();
