@@ -18,6 +18,8 @@
 package org.apache.hadoop.ozone;
 
 import static org.apache.hadoop.hdds.HddsConfigKeys.HDDS_HEARTBEAT_INTERVAL;
+import static org.apache.hadoop.hdds.HddsConfigKeys.HDDS_SCM_SAFEMODE_MIN_DATANODE;
+import static org.apache.hadoop.hdds.HddsConfigKeys.HDDS_SCM_SAFEMODE_MIN_DATANODE_DEFAULT;
 import static org.apache.hadoop.hdds.protocol.proto.HddsProtos.NodeState.HEALTHY;
 import static org.apache.hadoop.hdds.recon.ReconConfigKeys.OZONE_RECON_ADDRESS_KEY;
 import static org.apache.hadoop.hdds.recon.ReconConfigKeys.OZONE_RECON_DATANODE_ADDRESS_KEY;
@@ -738,6 +740,14 @@ public class MiniOzoneClusterImpl implements MiniOzoneCluster {
       conf.setInt(ScmConfigKeys.OZONE_SCM_HANDLER_COUNT_KEY, numOfScmHandlers);
       conf.set(HddsConfigKeys.HDDS_SCM_WAIT_TIME_AFTER_SAFE_MODE_EXIT,
           "3s");
+
+      final int minDatanodes = conf.getInt(HDDS_SCM_SAFEMODE_MIN_DATANODE,
+          HDDS_SCM_SAFEMODE_MIN_DATANODE_DEFAULT);
+      if (numOfDatanodes >= 3
+          && minDatanodes == HDDS_SCM_SAFEMODE_MIN_DATANODE_DEFAULT) {
+        conf.setInt(HDDS_SCM_SAFEMODE_MIN_DATANODE, 3);
+      }
+
       configureSCMheartbeat();
     }
 
