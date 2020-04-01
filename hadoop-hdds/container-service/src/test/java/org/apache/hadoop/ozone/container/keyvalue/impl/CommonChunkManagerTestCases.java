@@ -114,6 +114,8 @@ public abstract class CommonChunkManagerTestCases
     chunkManager.writeChunk(getKeyValueContainer(), getBlockID(),
         getChunkInfo(), getData(),
         getDispatcherContext());
+    chunkManager.finishWriteChunk(getKeyValueContainer(), getBlockID(),
+        getChunkInfo());
     checkChunkFileCount(1);
 
     chunkManager.deleteChunk(getKeyValueContainer(), getBlockID(),
@@ -176,7 +178,7 @@ public abstract class CommonChunkManagerTestCases
     DispatcherContext context = getDispatcherContext();
 
     // WHEN
-    for (int i = 0; i< count; i++) {
+    for (int i = 0; i < count; i++) {
       ChunkInfo info = new ChunkInfo(String.format("%d.data.%d", localID, i),
           i * len, len);
       chunkManager.writeChunk(container, blockID, info, data, context);
@@ -185,7 +187,6 @@ public abstract class CommonChunkManagerTestCases
 
     // THEN
     checkWriteIOStats(len * count, count);
-    assertTrue(getHddsVolume().getVolumeIOStats().getWriteTime() > 0);
 
     // WHEN
     for (int i = 0; i< count; i++) {

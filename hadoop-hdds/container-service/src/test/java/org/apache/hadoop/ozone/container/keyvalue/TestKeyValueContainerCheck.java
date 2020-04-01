@@ -258,6 +258,7 @@ import static org.junit.Assert.assertFalse;
               ByteBuffer.wrap(chunkData), writeStage);
           chunkManager.writeChunk(container, blockID, info,
               ByteBuffer.wrap(chunkData), commitStage);
+          chunkManager.finishWriteChunk(container, blockID, info);
         }
         blockData.setChunks(chunkList);
 
