@@ -21,28 +21,21 @@
 #
 
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )
-ALL_RESULT_DIR="$SCRIPT_DIR/result"
 
-mkdir -p "$ALL_RESULT_DIR"
-rm "$ALL_RESULT_DIR/*"
+t="$SCRIPT_DIR"/ozone-topology/test.sh
+d="$(dirname "$t")"
+r="${d}/result"
+echo "Executing test in ${d}"
+#required to read the .env file from the right location
+cd "${d}"
 
-RESULT=0
-IFS=$'\n'
-# shellcheck disable=SC2044
-for test in $(find "$SCRIPT_DIR" -name test.sh | sort); do
-  echo "Executing test in $(dirname "$test")"
+for i in {1..50}; do
+  echo "Iteration ${i}"
 
-  #required to read the .env file from the right location
-  cd "$(dirname "$test")" || continue
   ./test.sh
   ret=$?
-  if [[ $ret -ne 0 ]]; then
-      RESULT=1
-      echo "ERROR: Test execution of $(dirname "$test") is FAILED!!!!"
+  if [[ ${ret} -ne 0 ]]; then
+    rebot -N "smoketests" -d "${r}" "${r}/robot-*.xml"
+    exit ${ret}
   fi
-  RESULT_DIR="$(dirname "$test")/result"
-  cp "$RESULT_DIR"/robot-*.xml "$RESULT_DIR"/docker-*.log "$ALL_RESULT_DIR"/
 done
-
-rebot -N "smoketests" -d "$SCRIPT_DIR/result" "$SCRIPT_DIR/result/robot-*.xml"
-exit $RESULT
