@@ -21,6 +21,7 @@
 #
 
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )
+ALL_RESULT_DIR="$SCRIPT_DIR/result"
 
 t="$SCRIPT_DIR"/ozone-topology/test.sh
 d="$(dirname "$t")"
@@ -40,6 +41,7 @@ for i in {1..10}; do
   ./test.sh
   ret=$?
   if [[ ${ret} -ne 0 ]]; then
+    cp "${r}"/robot-*.xml "${r}"/docker-*.log "${r}"/*.out* "$ALL_RESULT_DIR"/
     rebot -N "smoketests" -d "${r}" "${r}/robot-*.xml"
     exit ${ret}
   fi
