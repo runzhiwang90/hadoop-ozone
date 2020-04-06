@@ -23,6 +23,9 @@
 SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )
 ALL_RESULT_DIR="$SCRIPT_DIR/result"
 
+mkdir -pv "$ALL_RESULT_DIR"
+rm -frv "$ALL_RESULT_DIR/*"
+
 t="$SCRIPT_DIR"/ozone-topology/test.sh
 d="$(dirname "$t")"
 r="${d}/result"
@@ -31,11 +34,13 @@ echo "Executing test in ${d}"
 cd "${d}"
 
 df -h
+dd if=/dev/zero of="hog${i}" bs=1073741824 count=6 conv=fsync
+df -h
 
 for i in {1..10}; do
   echo "Iteration ${i}"
 
-  dd if=/dev/zero of="hog${i}" bs=1024 count=1048576 conv=fsync
+  dd if=/dev/zero of="hog${i}" bs=104857600 count=1 conv=fsync
   df -h
 
   ./test.sh
