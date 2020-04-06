@@ -28,7 +28,7 @@ jobs:
         - run: sudo chown runner -R .
         - run: ls -la
         - run: id
-        - run: sudo mkdir /mnt/data && sudo chown runner /mnt/data
+        - run: sudo mkdir /mnt/data && sudo chown runner /mnt/data && sudo chmod 777 /mnt/data
         - run: cd ./hadoop-ozone/dist/target/ozone-*/ && mkdir .aws && sudo chown 1000 .aws
         - run: ./hadoop-ozone/dev-support/checks/acceptance.sh
         - uses: actions/upload-artifact@master
