@@ -22,13 +22,13 @@ x-common-config:
   image: apache/ozone-runner:${OZONE_RUNNER_VERSION}
   volumes:
     - ../..:/opt/hadoop
-    - /mnt:/data
+    - /mnt/data:/data
   env_file:
     - docker-config
 
 x-replication:
   &replication
-  OZONE-SITE.XML_ozone.replication: ${OZONE_REPLICATION_FACTOR:-1}
+  OZONE-SITE.XML_ozone.replication: ${OZONE_REPLICATION_FACTOR:-3}
 
 services:
   datanode_1:
@@ -86,27 +86,27 @@ services:
       net:
         ipv4_address: 10.5.0.9
   om:
-     <<: *common-config
-     ports:
-        - 9874:9874
-        - 9862:9862
-     environment:
-        ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
-     command: ["/opt/hadoop/bin/ozone","om"]
-     networks:
-        net:
-           ipv4_address: 10.5.0.70
+    <<: *common-config
+    ports:
+      - 9874:9874
+      - 9862:9862
+    environment:
+       ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
+    command: ["/opt/hadoop/bin/ozone","om"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.70
   scm:
-     <<: *common-config
-     ports:
-        - 9876:9876
-     environment:
-         ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
-         OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-1}"
-     command: ["/opt/hadoop/bin/ozone","scm"]
-     networks:
-        net:
-           ipv4_address: 10.5.0.71
+    <<: *common-config
+    ports:
+      - 9876:9876
+    environment:
+      ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
+      OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-3}"
+    command: ["/opt/hadoop/bin/ozone","scm"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.71
 networks:
   net:
     driver: bridge
