@@ -37,6 +37,10 @@ create_results_dir() {
 wait_for_safemode_exit(){
   local compose_file=$1
 
+  docker-compose -f "$COMPOSE_FILE" exec -T "scm" mount
+  docker-compose -f "$COMPOSE_FILE" exec -T "scm" ls -la /data
+  docker-compose -f "$COMPOSE_FILE" exec -T "scm" id
+
   #Reset the timer
   SECONDS=0
 
@@ -98,9 +102,6 @@ execute_robot_test(){
   OUTPUT_NAME="$COMPOSE_ENV_NAME-$TEST_NAME-$CONTAINER"
   OUTPUT_PATH="$RESULT_DIR_INSIDE/robot-$OUTPUT_NAME.xml"
   # shellcheck disable=SC2068
-  docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mount
-  docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" ls -la /data
-  docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" id
   docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE" \
     && docker-compose -f "$COMPOSE_FILE" exec -T -e SECURITY_ENABLED="${SECURITY_ENABLED}" -e OM_HA_PARAM="${OM_HA_PARAM}" "$CONTAINER" robot ${ARGUMENTS[@]} --log NONE -N "$TEST_NAME" --report NONE "${OZONE_ROBOT_OPTS[@]}" --output "$OUTPUT_PATH" "$SMOKETEST_DIR_INSIDE/$TEST"
   local -i rc=$?
