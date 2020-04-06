@@ -31,85 +31,85 @@ x-replication:
   OZONE-SITE.XML_ozone.replication: ${OZONE_REPLICATION_FACTOR:-1}
 
 services:
-   datanode_1:
-      <<: *common-config
-      ports:
-        - 9864
-        - 9882
-      command: ["/opt/hadoop/bin/ozone","datanode"]
-      networks:
-         net:
-            ipv4_address: 10.5.0.4
-   datanode_2:
-      <<: *common-config
-      ports:
-        - 9864
-        - 9882
-      command: ["/opt/hadoop/bin/ozone","datanode"]
-      networks:
-         net:
-            ipv4_address: 10.5.0.5
-   datanode_3:
-      <<: *common-config
-      ports:
-        - 9864
-        - 9882
-      command: ["/opt/hadoop/bin/ozone","datanode"]
-      networks:
-         net:
-            ipv4_address: 10.5.0.6
-   datanode_4:
-      <<: *common-config
-      ports:
-        - 9864
-        - 9882
-      command: ["/opt/hadoop/bin/ozone","datanode"]
-      networks:
-         net:
-            ipv4_address: 10.5.0.7
-   datanode_5:
-      <<: *common-config
+  datanode_1:
+    <<: *common-config
+    ports:
+      - 9864
+      - 9882
+    command: ["/opt/hadoop/bin/ozone","datanode"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.4
+  datanode_2:
+    <<: *common-config
+    ports:
+      - 9864
+      - 9882
+    command: ["/opt/hadoop/bin/ozone","datanode"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.5
+  datanode_3:
+    <<: *common-config
+    ports:
+      - 9864
+      - 9882
+    command: ["/opt/hadoop/bin/ozone","datanode"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.6
+  datanode_4:
+    <<: *common-config
+    ports:
+      - 9864
+      - 9882
+    command: ["/opt/hadoop/bin/ozone","datanode"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.7
+  datanode_5:
+    <<: *common-config
+    ports:
+      - 9864
+      - 9882
+    command: ["/opt/hadoop/bin/ozone","datanode"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.8
+  datanode_6:
+    <<: *common-config
+    ports:
+      - 9864
+      - 9882
+    command: ["/opt/hadoop/bin/ozone","datanode"]
+    networks:
+      net:
+        ipv4_address: 10.5.0.9
+  om:
+     <<: *common-config
      ports:
-       - 9864
-       - 9882
-     command: ["/opt/hadoop/bin/ozone","datanode"]
+        - 9874:9874
+        - 9862:9862
+     environment:
+        ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
+     command: ["/opt/hadoop/bin/ozone","om"]
      networks:
-       net:
-         ipv4_address: 10.5.0.8
-   datanode_6:
-      <<: *common-config
+        net:
+           ipv4_address: 10.5.0.70
+  scm:
+     <<: *common-config
      ports:
-       - 9864
-       - 9882
-     command: ["/opt/hadoop/bin/ozone","datanode"]
+        - 9876:9876
+     environment:
+         ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
+         OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-1}"
+     command: ["/opt/hadoop/bin/ozone","scm"]
      networks:
-       net:
-         ipv4_address: 10.5.0.9
-   om:
-      <<: *common-config
-      ports:
-         - 9874:9874
-         - 9862:9862
-      environment:
-         ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
-      command: ["/opt/hadoop/bin/ozone","om"]
-      networks:
-         net:
-            ipv4_address: 10.5.0.70
-   scm:
-      <<: *common-config
-      ports:
-         - 9876:9876
-      environment:
-          ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
-          OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-6}"
-      command: ["/opt/hadoop/bin/ozone","scm"]
-      networks:
-         net:
-            ipv4_address: 10.5.0.71
+        net:
+           ipv4_address: 10.5.0.71
 networks:
-   net:
-     driver: bridge
-     ipam:
-       config:
-         - subnet: 10.5.0.0/16
+  net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
