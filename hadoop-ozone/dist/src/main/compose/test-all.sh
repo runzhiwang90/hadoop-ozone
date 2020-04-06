@@ -34,13 +34,11 @@ echo "Executing test in ${d}"
 cd "${d}"
 
 df -h
-dd if=/dev/zero of="hog${i}" bs=1073741824 count=6 conv=fsync
-df -h
 
-for i in {1..10}; do
+for i in {1..13}; do
   echo "Iteration ${i}"
 
-  dd if=/dev/zero of="hog${i}" bs=104857600 count=1 conv=fsync
+  dd if=/dev/zero of="hog${i}" bs=1073741824 count=1 conv=fsync
   df -h
 
   ./test.sh
