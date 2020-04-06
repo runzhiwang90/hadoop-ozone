@@ -29,8 +29,13 @@ echo "Executing test in ${d}"
 #required to read the .env file from the right location
 cd "${d}"
 
-for i in {1..50}; do
+df -h
+
+for i in {1..10}; do
   echo "Iteration ${i}"
+
+  dd if=/dev/zero of="hog${i}" bs=1024 count=1048576 conv=fsync
+  df -h
 
   ./test.sh
   ret=$?
