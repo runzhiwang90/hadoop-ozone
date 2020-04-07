@@ -384,10 +384,11 @@ public class MiniOzoneClusterImpl implements MiniOzoneCluster {
   @Override
   public void shutdown() {
     try {
-      LOG.info("Shutting down the Mini Ozone Cluster");
       File baseDir = new File(GenericTestUtils.getTempPath(
           MiniOzoneClusterImpl.class.getSimpleName() + "-" +
               scm.getClientProtocolServer().getScmInfo().getClusterId()));
+      LOG.info("Shutting down the Mini Ozone Cluster with {} bytes left",
+          baseDir.getFreeSpace());
       stop();
       FileUtils.deleteDirectory(baseDir);
       ContainerCache.getInstance(conf).shutdownCache();
@@ -574,6 +575,8 @@ public class MiniOzoneClusterImpl implements MiniOzoneCluster {
      */
     protected void initializeConfiguration() throws IOException {
       Path metaDir = Paths.get(path, "ozone-meta");
+      LOG.info("Space available for MiniOzoneCluster in {}: {} bytes",
+          path, new File(path).getFreeSpace());
       Files.createDirectories(metaDir);
       conf.set(HddsConfigKeys.OZONE_METADATA_DIRS, metaDir.toString());
       if (!chunkSize.isPresent()) {

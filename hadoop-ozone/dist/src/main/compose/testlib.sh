@@ -97,6 +97,9 @@ execute_robot_test(){
   set +e
   OUTPUT_NAME="$COMPOSE_ENV_NAME-$TEST_NAME-$CONTAINER"
   OUTPUT_PATH="$RESULT_DIR_INSIDE/robot-$OUTPUT_NAME.xml"
+
+  execute_command_in_container scm df -h
+
   # shellcheck disable=SC2068
   docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE" \
     && docker-compose -f "$COMPOSE_FILE" exec -T -e SECURITY_ENABLED="${SECURITY_ENABLED}" -e OM_HA_PARAM="${OM_HA_PARAM}" "$CONTAINER" robot ${ARGUMENTS[@]} --log NONE -N "$TEST_NAME" --report NONE "${OZONE_ROBOT_OPTS[@]}" --output "$OUTPUT_PATH" "$SMOKETEST_DIR_INSIDE/$TEST"
@@ -120,7 +123,7 @@ execute_robot_test(){
 copy_daemon_logs() {
   local c f
   for c in $(docker-compose -f "$COMPOSE_FILE" ps | grep "^${COMPOSE_ENV_NAME}_" | awk '{print $1}'); do
-    for f in $(docker exec "${c}" ls -1 /var/log/hadoop | grep -F '.out'); do
+    for f in $(docker exec "${c}" ls -1 /var/log/hadoop 2> /dev/null | grep -F '.out'); do
       docker cp "${c}:/var/log/hadoop/${f}" "$RESULT_DIR/"
     done
   done
@@ -186,6 +189,7 @@ wait_for_port(){
 
 ## @description  Stops a docker-compose based test environment (with saving the logs)
 stop_docker_env(){
+  execute_command_in_container scm df -h
   docker-compose -f "$COMPOSE_FILE" --no-ansi logs > "$RESULT_DIR/docker-$OUTPUT_NAME.log"
   if [ "${KEEP_RUNNING:-false}" = false ]; then
      docker-compose -f "$COMPOSE_FILE" --no-ansi down
