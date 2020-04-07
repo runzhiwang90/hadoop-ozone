@@ -35,6 +35,9 @@ import static org.apache.hadoop.ozone.recon.ReconServerConfigKeys.RECON_OM_SOCKE
 import static org.apache.hadoop.ozone.recon.ReconServerConfigKeys.RECON_OM_SOCKET_TIMEOUT_DEFAULT;
 import static org.apache.ratis.proto.RaftProtos.RaftPeerRole.LEADER;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.web.URLConnectionFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,6 +94,7 @@ public class OzoneManagerServiceProviderImpl
 
   private static final Logger LOG =
       LoggerFactory.getLogger(OzoneManagerServiceProviderImpl.class);
+  private static URLConnectionFactory connectionFactory;
 
   private final CloseableHttpClient httpClient;
   private File omSnapshotDBParentDir = null;
@@ -121,6 +125,8 @@ public class OzoneManagerServiceProviderImpl
       ReconUtils reconUtils,
       OzoneManagerProtocol ozoneManagerClient) {
 
+    connectionFactory =
+        URLConnectionFactory.newDefaultURLConnectionFactory(configuration);
     String ozoneManagerHttpAddress = configuration.get(OMConfigKeys
         .OZONE_OM_HTTP_ADDRESS_KEY);
 
@@ -280,7 +286,7 @@ public class OzoneManagerServiceProviderImpl
     File targetFile = new File(omSnapshotDBParentDir, snapshotFileName +
         ".tar.gz");
     try {
-      try (InputStream inputStream = reconUtils.makeHttpCall(httpClient,
+      try (InputStream inputStream = reconUtils.makeHttpCall(connectionFactory,
           getOzoneManagerSnapshotUrl())) {
         FileUtils.copyInputStreamToFile(inputStream, targetFile);
       }
