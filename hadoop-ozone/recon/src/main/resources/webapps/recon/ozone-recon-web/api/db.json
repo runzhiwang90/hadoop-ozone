@@ -1,12 +1,10 @@
 {
-  "stats": {
-    "datanodes": {
-      "total": 10,
-      "healthy": 9
-    },
+  "clusterState": {
+    "totalDatanodes": 10,
+    "healthyDatanodes": 9,
     "pipelines": 3,
-    "capacity": {
-      "total": 1099511627778,
+    "storageReport": {
+      "capacity": 1099511627778,
       "used": 681826058240,
       "remaining": 391915765760
     },
@@ -359,20 +357,54 @@
       {
         "id": 1,
         "keys": 3876,
-        "datanodes": [
-          "localhost1.storage.enterprise.com",
-          "localhost3.storage.enterprise.com",
-          "localhost5.storage.enterprise.com"
-        ]
+        "replicas": [
+          {
+            "containerId": 1,
+            "datanodeHost": "localhost1.storage.enterprise.com",
+            "firstReportTimestamp": 1578491371100,
+            "lastReportTimestamp": 1578491371528
+          },
+          {
+            "containerId": 1,
+            "datanodeHost": "localhost3.storage.enterprise.com",
+            "firstReportTimestamp": 1578491370100,
+            "lastReportTimestamp": 1578491371328
+          },
+          {
+            "containerId": 1,
+            "datanodeHost": "localhost5.storage.enterprise.com",
+            "firstReportTimestamp": 1578491371200,
+            "lastReportTimestamp": 1578491371528
+          }
+        ],
+        "missingSince": 1578491371528,
+        "pipelineId": "05e3d908-ff01-4ce6-ad75-f3ec79bcc7982"
       },
       {
         "id": 2,
         "keys": 5943,
-        "datanodes": [
-          "localhost1.storage.enterprise.com",
-          "localhost3.storage.enterprise.com",
-          "localhost5.storage.enterprise.com"
-        ]
+        "replicas": [
+          {
+            "containerId": 1,
+            "datanodeHost": "localhost1.storage.enterprise.com",
+            "firstReportTimestamp": 1578491371100,
+            "lastReportTimestamp": 1578491371528
+          },
+          {
+            "containerId": 1,
+            "datanodeHost": "localhost3.storage.enterprise.com",
+            "firstReportTimestamp": 1578491370100,
+            "lastReportTimestamp": 1578491371328
+          },
+          {
+            "containerId": 1,
+            "datanodeHost": "localhost5.storage.enterprise.com",
+            "firstReportTimestamp": 1578491371200,
+            "lastReportTimestamp": 1578491371528
+          }
+        ],
+        "missingSince": 1578491471528,
+        "pipelineId": "04a5d908-ff01-4ce6-ad75-f3ec73dfc8a2"
       }
     ]
   },
