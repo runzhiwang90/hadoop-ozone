@@ -273,7 +273,7 @@ public interface MiniOzoneCluster {
   static void setDefaultTimeoutsForTest(OzoneConfiguration conf) {
     conf.setTimeDuration(RatisHelper.HDDS_DATANODE_RATIS_SERVER_PREFIX_KEY
         + "." + DatanodeRatisServerConfig.RATIS_SERVER_REQUEST_TIMEOUT_KEY,
-        3, TimeUnit.SECONDS);
+        5, TimeUnit.SECONDS);
     conf.setTimeDuration(
         RatisHelper.HDDS_DATANODE_RATIS_SERVER_PREFIX_KEY + "." +
             DatanodeRatisServerConfig.
@@ -282,7 +282,7 @@ public interface MiniOzoneCluster {
     conf.setTimeDuration(
         RatisHelper.HDDS_DATANODE_RATIS_CLIENT_PREFIX_KEY+ "." +
             "rpc.request.timeout",
-        3, TimeUnit.SECONDS);
+        5, TimeUnit.SECONDS);
     conf.setTimeDuration(
         RatisHelper.HDDS_DATANODE_RATIS_CLIENT_PREFIX_KEY+ "." +
             "watch.request.timeout",
