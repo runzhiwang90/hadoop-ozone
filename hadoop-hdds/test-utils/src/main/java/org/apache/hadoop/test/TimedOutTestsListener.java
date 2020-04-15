@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.test;
 
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.management.LockInfo;
@@ -33,6 +35,8 @@ import java.util.Map;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 /**
  * JUnit run listener which prints full thread dump into System.err
  * in case a test is failed due to timeout.
@@ -46,17 +50,16 @@ public class TimedOutTestsListener extends RunListener {
   private final PrintWriter output;
   
   public TimedOutTestsListener() {
-    this(new PrintWriter(System.err));
+    this(new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+        System.err, UTF_8))));
   }
   
   public TimedOutTestsListener(PrintWriter output) {
     this.output = output;
-    output.println("ZZZ1");
   }
 
   @Override
   public void testFailure(Failure failure) throws Exception {
-    output.println("ZZZ2");
     if (failure != null && failure.getMessage() != null
         && failure.getMessage().startsWith(TEST_TIMED_OUT_PREFIX)) {
       output.println("====> TEST TIMED OUT. PRINTING THREAD DUMP. <====");
@@ -91,7 +94,7 @@ public class TimedOutTestsListener extends RunListener {
     for (Map.Entry<Thread, StackTraceElement[]> e : stackTraces.entrySet()) {
       Thread thread = e.getKey();
       dump.append(String.format(
-          "\"%s\" %s prio=%d tid=%d %s\njava.lang.Thread.State: %s",
+          "\"%s\" %s prio=%d tid=%d %s%njava.lang.Thread.State: %s",
           thread.getName(),
           (thread.isDaemon() ? "daemon" : ""),
           thread.getPriority(),

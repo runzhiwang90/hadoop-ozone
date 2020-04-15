@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.hadoop.util.Time;
@@ -44,8 +45,11 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
 import org.junit.Assert;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertTrue;
+
 /**
- * Test provides some very generic helpers which might be used across the tests.
+ * Provides some very generic helpers which might be used across the tests.
  */
 public abstract class GenericTestUtils {
 
@@ -56,7 +60,7 @@ public abstract class GenericTestUtils {
    * Error string used in {@link GenericTestUtils#waitFor(Supplier, int, int)}.
    */
   public static final String ERROR_MISSING_ARGUMENT =
-      "Input supplier interface should be initailized";
+      "Input supplier interface should be initialized";
   public static final String ERROR_INVALID_ARGUMENT =
       "Total wait time should be greater than check interval time";
 
@@ -81,8 +85,7 @@ public abstract class GenericTestUtils {
       prop = DEFAULT_TEST_DATA_DIR;
     }
     File dir = new File(prop).getAbsoluteFile();
-    dir.mkdirs();
-    assertExists(dir);
+    assertDirCreation(dir);
     return dir;
   }
 
@@ -142,7 +145,15 @@ public abstract class GenericTestUtils {
    * Assert that a given file exists.
    */
   public static void assertExists(File f) {
-    Assert.assertTrue("File " + f + " should exist", f.exists());
+    assertTrue("File " + f + " should exist", f.exists());
+  }
+
+  /**
+   * Assert that a given dir can be created or it already exists.
+   */
+  public static void assertDirCreation(File f) {
+    assertTrue("Could not create dir " + f + ", nor does it exist",
+        f.mkdirs() || f.exists());
   }
 
   public static void assertExceptionContains(String expectedText, Throwable t) {
@@ -298,19 +309,19 @@ public abstract class GenericTestUtils {
    * </pre>
    */
   public static class SystemErrCapturer implements AutoCloseable {
-    final private ByteArrayOutputStream bytes;
-    final private PrintStream bytesPrintStream;
-    final private PrintStream oldErr;
+    private final ByteArrayOutputStream bytes;
+    private final PrintStream bytesPrintStream;
+    private final PrintStream oldErr;
 
-    public SystemErrCapturer() {
+    public SystemErrCapturer() throws UnsupportedEncodingException {
       bytes = new ByteArrayOutputStream();
-      bytesPrintStream = new PrintStream(bytes);
+      bytesPrintStream = new PrintStream(bytes, false, UTF_8.name());
       oldErr = System.err;
       System.setErr(new TeePrintStream(oldErr, bytesPrintStream));
     }
 
-    public String getOutput() {
-      return bytes.toString();
+    public String getOutput() throws UnsupportedEncodingException {
+      return bytes.toString(UTF_8.name());
     }
 
     @Override
@@ -328,8 +339,9 @@ public abstract class GenericTestUtils {
   public static class TeePrintStream extends PrintStream {
     private final PrintStream other;
 
-    public TeePrintStream(OutputStream main, PrintStream other) {
-      super(main);
+    public TeePrintStream(OutputStream main, PrintStream other)
+        throws UnsupportedEncodingException {
+      super(main, false, UTF_8.name());
       this.other = other;
     }
 

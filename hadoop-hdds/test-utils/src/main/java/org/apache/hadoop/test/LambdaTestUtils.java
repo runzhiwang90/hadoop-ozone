@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.util.Time;
 
 import com.google.common.base.Preconditions;
@@ -117,7 +118,7 @@ public final class LambdaTestUtils {
         "timeoutMillis must be >= 0");
     Preconditions.checkNotNull(timeoutHandler);
 
-    long endTime = Time.now() + timeoutMillis;
+    final long endTime = Time.now() + timeoutMillis;
     Throwable ex = null;
     boolean running = true;
     int iterations = 0;
@@ -228,15 +229,15 @@ public final class LambdaTestUtils {
    * @throws InterruptedException if interrupted during the sleep operation.
    * @throws OutOfMemoryError you've run out of memory.
    */
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   public static <T> T eventually(int timeoutMillis,
       Callable<T> eval,
       Callable<Integer> retry) throws Exception {
     Preconditions.checkArgument(timeoutMillis >= 0,
         "timeoutMillis must be >= 0");
-    long endTime = Time.now() + timeoutMillis;
+    final long endTime = Time.now() + timeoutMillis;
     Throwable ex;
     boolean running;
-    int sleeptime;
     int iterations = 0;
     do {
       iterations++;
@@ -250,11 +251,11 @@ public final class LambdaTestUtils {
       } catch (Throwable e) {
         LOG.debug("evaluate() iteration {}", iterations, e);
         ex = e;
-      }
-      running = Time.now() < endTime;
-      sleeptime = retry.call();
-      if (running && sleeptime >= 0) {
-        Thread.sleep(sleeptime);
+        running = Time.now() < endTime;
+        int sleeptime = retry.call();
+        if (running && sleeptime >= 0) {
+          Thread.sleep(sleeptime);
+        }
       }
     } while (running);
     // timeout. Throw the last exception raised
@@ -597,7 +598,6 @@ public final class LambdaTestUtils {
    * Assert that an optional value matches an expected one;
    * checks include null and empty on the actual value.
    * @param message message text
-   * @param expected expected value
    * @param actual actual optional value
    * @param <T> type
    */
