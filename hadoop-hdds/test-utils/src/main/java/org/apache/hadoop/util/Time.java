@@ -27,7 +27,7 @@ import java.util.TimeZone;
 public final class Time {
 
   /**
-   * number of nano seconds in 1 millisecond
+   * Number of nanoseconds in 1 millisecond.
    */
   private static final long NANOSECONDS_PER_MILLISECOND = 1000000;
 
@@ -89,4 +89,9 @@ public final class Time {
   public static long getUtcTime() {
     return Calendar.getInstance(UTC_ZONE).getTimeInMillis();
   }
+
+  private Time() {
+    throw new UnsupportedOperationException("no instances");
+  }
+
 }
