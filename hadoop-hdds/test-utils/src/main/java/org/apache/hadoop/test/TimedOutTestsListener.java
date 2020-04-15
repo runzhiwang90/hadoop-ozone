@@ -27,9 +27,8 @@ import java.lang.management.ThreadMXBean;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
-
-import org.apache.hadoop.util.StringUtils;
 
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
@@ -40,23 +39,25 @@ import org.junit.runner.notification.RunListener;
  */
 public class TimedOutTestsListener extends RunListener {
 
-  static final String TEST_TIMED_OUT_PREFIX = "test timed out after";
+  private static final String TEST_TIMED_OUT_PREFIX = "test timed out after";
 
   private static final String INDENT = "    ";
 
   private final PrintWriter output;
   
   public TimedOutTestsListener() {
-    this.output = new PrintWriter(System.err);
+    this(new PrintWriter(System.err));
   }
   
   public TimedOutTestsListener(PrintWriter output) {
     this.output = output;
+    output.println("ZZZ1");
   }
 
   @Override
   public void testFailure(Failure failure) throws Exception {
-    if (failure != null && failure.getMessage() != null 
+    output.println("ZZZ2");
+    if (failure != null && failure.getMessage() != null
         && failure.getMessage().startsWith(TEST_TIMED_OUT_PREFIX)) {
       output.println("====> TEST TIMED OUT. PRINTING THREAD DUMP. <====");
       output.println();
@@ -97,7 +98,7 @@ public class TimedOutTestsListener extends RunListener {
           thread.getId(),
           Thread.State.WAITING.equals(thread.getState()) ? 
               "in Object.wait()" :
-              StringUtils.toLowerCase(thread.getState().name()),
+              thread.getState().name().toLowerCase(Locale.ENGLISH),
           Thread.State.WAITING.equals(thread.getState()) ?
               "WAITING (on object monitor)" : thread.getState()));
       for (StackTraceElement stackTraceElement : e.getValue()) {

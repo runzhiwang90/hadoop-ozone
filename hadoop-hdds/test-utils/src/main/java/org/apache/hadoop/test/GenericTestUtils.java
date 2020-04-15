@@ -22,10 +22,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Time;
 
 import com.google.common.base.Preconditions;
@@ -59,6 +59,9 @@ public abstract class GenericTestUtils {
       "Input supplier interface should be initailized";
   public static final String ERROR_INVALID_ARGUMENT =
       "Total wait time should be greater than check interval time";
+
+  public static final boolean WINDOWS =
+      System.getProperty("os.name").startsWith("Windows");
 
   static {
     DEFAULT_TEST_DATA_DIR =
@@ -111,7 +114,7 @@ public abstract class GenericTestUtils {
    * @return a string to use in paths
    */
   public static String getTempPath(String subpath) {
-    String prop = (Path.WINDOWS) ? DEFAULT_TEST_DATA_PATH
+    String prop = WINDOWS ? DEFAULT_TEST_DATA_PATH
         : System.getProperty(SYSPROP_TEST_DATA_DIR, DEFAULT_TEST_DATA_PATH);
 
     if (prop.isEmpty()) {
@@ -157,8 +160,21 @@ public abstract class GenericTestUtils {
       throw new AssertionError(String
           .format("%s Expected to find '%s' %s: %s", prefix, expectedText,
               "but got unexpected exception",
-              org.apache.hadoop.util.StringUtils.stringifyException(t)), t);
+              stringifyException(t)), t);
     }
+  }
+
+  /**
+   * Make a string representation of the exception.
+   * @param e The exception to stringify
+   * @return A string with exception name and call stack.
+   */
+  public static String stringifyException(Throwable e) {
+    StringWriter stm = new StringWriter();
+    PrintWriter wrt = new PrintWriter(stm);
+    e.printStackTrace(wrt);
+    wrt.close();
+    return stm.toString();
   }
 
   /**
