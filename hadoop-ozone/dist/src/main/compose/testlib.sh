@@ -192,7 +192,8 @@ stop_docker_env(){
   execute_command_in_container scm df -h
   docker-compose -f "$COMPOSE_FILE" --no-ansi logs > "$RESULT_DIR/docker-$OUTPUT_NAME.log"
   if [ "${KEEP_RUNNING:-false}" = false ]; then
-     docker-compose -f "$COMPOSE_FILE" --no-ansi down
+    docker-compose -f "$COMPOSE_FILE" --no-ansi down
+    df -h
   fi
 }
 
