@@ -27,7 +27,9 @@ jobs:
           with:
             args: ./hadoop-ozone/dev-support/checks/build.sh
         - run: df -k
-        - run: docker image rm $(docker images -a -q | head -2) || true
+        - run: docker image rm $(docker images -a -q | head -1) || true
+        - run: df -k
+        - run: docker image rm apache/ozone-build || true
         - run: df -k
         - run: docker system prune --force
         - run: df -k
