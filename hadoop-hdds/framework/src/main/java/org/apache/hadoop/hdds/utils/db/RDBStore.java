@@ -92,6 +92,7 @@ public class RDBStore implements DBStore {
     dbOptions = options;
     dbLocation = dbFile;
     this.writeOptions = writeOptions;
+    this.writeOptions.disableWAL();
 
     try {
       db = RocksDB.open(dbOptions, dbLocation.getAbsolutePath(),
