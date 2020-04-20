@@ -22,6 +22,8 @@ mkdir -p "$REPORT_DIR"
 OZONE_VERSION=$(grep "<ozone.version>" "pom.xml" | sed 's/<[^>]*>//g'|  sed 's/^[ \t]*//')
 DIST_DIR="$DIR/../../dist/target/ozone-$OZONE_VERSION"
 
+df -h
+
 if [ ! -d "$DIST_DIR" ]; then
     echo "Distribution dir is missing. Doing a full build"
     "$DIR/build.sh"

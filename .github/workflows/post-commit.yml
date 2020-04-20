@@ -100,14 +100,19 @@ jobs:
     name: acceptance
     runs-on: ubuntu-18.04
     steps:
+        - run: df -h
         - uses: actions/checkout@master
+        - run: df -h
         - uses: ./.github/buildenv
           with:
             args: ./hadoop-ozone/dev-support/checks/build.sh
+        - run: df -h
         - run: sudo pip install robotframework
         - run: sudo chown runner -R .
         - run: cd ./hadoop-ozone/dist/target/ozone-*/ && mkdir .aws && sudo chown 1000 .aws
+        - run: df -h
         - run: ./hadoop-ozone/dev-support/checks/acceptance.sh
+        - run: df -h
         - uses: actions/upload-artifact@master
           if: always()
           with:
