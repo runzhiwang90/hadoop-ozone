@@ -107,7 +107,7 @@ jobs:
           with:
             args: ./hadoop-ozone/dev-support/checks/build.sh
         - run: df -k
-        - run: docker image rm $(docker images -a -q)
+        - run: docker image rm $(docker images -a -q) || true
         - run: df -k
         - run: docker system prune --force
         - run: df -k
