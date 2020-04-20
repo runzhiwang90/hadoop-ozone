@@ -98,7 +98,7 @@ execute_robot_test(){
   OUTPUT_NAME="$COMPOSE_ENV_NAME-$TEST_NAME-$CONTAINER"
   OUTPUT_PATH="$RESULT_DIR_INSIDE/robot-$OUTPUT_NAME.xml"
 
-  execute_command_in_container scm df -h
+  execute_command_in_container scm df -k
 
   # shellcheck disable=SC2068
   docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE" \
@@ -189,11 +189,11 @@ wait_for_port(){
 
 ## @description  Stops a docker-compose based test environment (with saving the logs)
 stop_docker_env(){
-  execute_command_in_container scm df -h
+  execute_command_in_container scm df -k
   docker-compose -f "$COMPOSE_FILE" --no-ansi logs > "$RESULT_DIR/docker-$OUTPUT_NAME.log"
   if [ "${KEEP_RUNNING:-false}" = false ]; then
     docker-compose -f "$COMPOSE_FILE" --no-ansi down
-    df -h
+    df -k
   fi
 }
 

@@ -80,3 +80,4 @@ Setup s3 tests
     Run Keyword        Install aws cli
     Run Keyword if    '${OZONE_S3_SET_CREDENTIALS}' == 'true'    Setup v4 headers
     Run Keyword if    '${BUCKET}' == 'generated'                 Create bucket
+    Execute            df -k
