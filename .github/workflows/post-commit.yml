@@ -109,7 +109,7 @@ jobs:
         - run: df -k
         - run: docker image rm apache/ozone-build
         - run: df -k
-        - run: docker system prune
+        - run: docker system prune --force
         - run: df -k
         - run: sudo pip install robotframework
         - run: sudo chown runner -R .
