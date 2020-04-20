@@ -81,3 +81,5 @@ Setup s3 tests
     Run Keyword if    '${OZONE_S3_SET_CREDENTIALS}' == 'true'    Setup v4 headers
     Run Keyword if    '${BUCKET}' == 'generated'                 Create bucket
     Execute            df -k
+    Execute And Ignore Error      ls -la /data/metadata/*
+    Execute And Ignore Error      du -sk /data/metadata/*

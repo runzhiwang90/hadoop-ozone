@@ -26,15 +26,9 @@ source "$COMPOSE_DIR/../testlib.sh"
 
 start_docker_env
 
-execute_command_in_container om1 bash -c "du -sk /data/metadata/om.db/*"
-
 execute_robot_test scm s3
 
-execute_command_in_container om1 bash -c "du -sk /data/metadata/om.db/*"
-
 execute_robot_test scm freon
-
-execute_command_in_container om1 bash -c "du -sk /data/metadata/om.db/*"
 
 stop_docker_env
 
