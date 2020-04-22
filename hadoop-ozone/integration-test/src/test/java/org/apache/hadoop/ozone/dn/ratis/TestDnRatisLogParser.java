@@ -81,6 +81,7 @@ public class TestDnRatisLogParser {
     datanodeRatisLogParser.setSegmentFile(logFile);
     datanodeRatisLogParser.parseRatisLogs(
         DatanodeRatisLogParser::smToContainerLogString);
-    Assert.assertTrue(out.toString().contains("Num Total Entries:"));
+    String output = out.toString();
+    Assert.assertTrue(output, output.contains("Num Total Entries:"));
   }
 }
