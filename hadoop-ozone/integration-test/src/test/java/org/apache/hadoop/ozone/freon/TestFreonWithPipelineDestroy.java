@@ -35,6 +35,7 @@ import org.junit.Test;
 /**
  * Tests Freon with Pipeline destroy.
  */
+@org.junit.Ignore
 public class TestFreonWithPipelineDestroy {
 
   private static MiniOzoneCluster cluster;
