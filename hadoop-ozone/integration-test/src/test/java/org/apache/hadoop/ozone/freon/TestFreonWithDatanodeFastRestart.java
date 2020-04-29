@@ -35,6 +35,7 @@ import org.junit.Test;
 /**
  * Tests Freon with Datanode restarts without waiting for pipeline to close.
  */
+@org.junit.Ignore
 public class TestFreonWithDatanodeFastRestart {
 
   private static MiniOzoneCluster cluster;
