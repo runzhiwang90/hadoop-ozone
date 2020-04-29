@@ -178,18 +178,15 @@ public class TestReadRetries {
     // shutdown the datanode
     cluster.shutdownHddsDatanode(datanodeDetails);
 
-    Assert.assertTrue(container.getState()
-        == HddsProtos.LifeCycleState.OPEN);
+    Assert.assertSame(HddsProtos.LifeCycleState.OPEN, container.getState());
     // try to read, this shouls be successful
     readKey(bucket, keyName, value);
 
-    Assert.assertTrue(container.getState()
-        == HddsProtos.LifeCycleState.OPEN);
+    Assert.assertSame(HddsProtos.LifeCycleState.OPEN, container.getState());
     // shutdown the second datanode
     datanodeDetails = datanodes.get(1);
     cluster.shutdownHddsDatanode(datanodeDetails);
-    Assert.assertTrue(container.getState()
-        == HddsProtos.LifeCycleState.OPEN);
+    Assert.assertSame(HddsProtos.LifeCycleState.OPEN, container.getState());
 
     // the container is open and with loss of 2 nodes we still should be able
     // to read via Standalone protocol
