@@ -1201,6 +1201,7 @@ public class TestOzoneManagerHA {
   }
 
   @Test
+  @Ignore
   public void testOMRestart() throws Exception {
     // Get the leader OM
     String leaderOMNodeId = objectStore.getClientProxy().getOMProxyProvider()
