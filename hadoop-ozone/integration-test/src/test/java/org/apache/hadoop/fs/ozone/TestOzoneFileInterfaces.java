@@ -74,6 +74,7 @@ import org.junit.runners.Parameterized.Parameters;
  * create, read, write, getFileStatus
  */
 @RunWith(Parameterized.class)
+@org.junit.Ignore
 public class TestOzoneFileInterfaces {
 
   private String rootPath;
