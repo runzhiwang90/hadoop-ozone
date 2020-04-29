@@ -91,7 +91,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests the containerStateMachine failure handling.
  */
-
+@org.junit.Ignore
 public class TestContainerStateMachineFailures {
 
   private static MiniOzoneCluster cluster;

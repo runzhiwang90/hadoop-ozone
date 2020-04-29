@@ -62,6 +62,7 @@ import static org.apache.hadoop.hdds.scm.ScmConfigKeys.OZONE_DATANODE_PIPELINE_L
 /**
  * This class verifies the watchForCommit Handling by xceiverClient.
  */
+@org.junit.Ignore
 public class TestWatchForCommit {
 
   private MiniOzoneCluster cluster;
