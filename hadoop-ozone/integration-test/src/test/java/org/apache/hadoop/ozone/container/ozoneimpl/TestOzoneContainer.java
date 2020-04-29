@@ -48,6 +48,7 @@ import static org.apache.hadoop.hdds.scm.ScmConfigKeys.HDDS_DATANODE_DIR_KEY;
 /**
  * Tests ozone containers.
  */
+@org.junit.Ignore
 public class TestOzoneContainer {
   /**
    * Set the timeout for every test.
