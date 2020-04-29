@@ -42,14 +42,12 @@ import org.apache.ratis.protocol.RaftGroupId;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 /**
  * Test pipeline leader information is correctly used.
  */
-@Ignore("HDDS-3265")
 public class TestRatisPipelineLeader {
   private static MiniOzoneCluster cluster;
   private static OzoneConfiguration conf;

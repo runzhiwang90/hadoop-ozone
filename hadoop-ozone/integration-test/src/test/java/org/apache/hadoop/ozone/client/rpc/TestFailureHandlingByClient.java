@@ -58,7 +58,6 @@ import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.NET_TOPOLOGY_NO
 import static org.apache.hadoop.hdds.scm.ScmConfigKeys.OZONE_SCM_STALENODE_INTERVAL;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -296,7 +295,6 @@ public class TestFailureHandlingByClient {
   }
 
   @Test
-  @Ignore("HDDS-3298")
   public void testDatanodeExclusionWithMajorityCommit() throws Exception {
     startCluster();
     String keyName = UUID.randomUUID().toString();

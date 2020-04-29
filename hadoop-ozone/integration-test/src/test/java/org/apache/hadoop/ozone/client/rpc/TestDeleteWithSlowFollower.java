@@ -66,14 +66,12 @@ import static org.apache.hadoop.hdds.scm.ScmConfigKeys.OZONE_SCM_STALENODE_INTER
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests delete key operation with a slow follower in the datanode
  * pipeline.
  */
-@Ignore("HDDS-3330")
 public class TestDeleteWithSlowFollower {
 
   private static MiniOzoneCluster cluster;

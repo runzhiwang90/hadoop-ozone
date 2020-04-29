@@ -58,13 +58,11 @@ import org.apache.ratis.grpc.server.GrpcLogAppender;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Test to verify pipeline is closed on readStateMachine failure.
  */
-@Ignore("see HDDS-3294")
 public class TestContainerStateMachineFailureOnRead {
   private MiniOzoneCluster cluster;
   private ObjectStore objectStore;
