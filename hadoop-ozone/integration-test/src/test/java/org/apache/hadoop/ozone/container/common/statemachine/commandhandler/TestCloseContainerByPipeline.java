@@ -21,6 +21,7 @@ import org.apache.hadoop.hdds.client.ReplicationFactor;
 import org.apache.hadoop.hdds.client.ReplicationType;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.DatanodeDetails;
+import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
 import org.apache.hadoop.hdds.scm.ScmConfigKeys;
 import org.apache.hadoop.hdds.scm.container.ContainerID;
@@ -45,6 +46,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -58,6 +61,9 @@ import static org.apache.hadoop.hdds.scm.ScmConfigKeys.OZONE_DATANODE_PIPELINE_L
  * Test container closing.
  */
 public class TestCloseContainerByPipeline {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(TestCloseContainerByPipeline.class);
 
   private static MiniOzoneCluster cluster;
   private static OzoneConfiguration conf;
@@ -327,31 +333,30 @@ public class TestCloseContainerByPipeline {
         isContainerClosed(cluster, containerID, datanodeDetails));
   }
 
-  private Boolean isContainerClosed(MiniOzoneCluster ozoneCluster,
-      long containerID,
-      DatanodeDetails datanode) {
-    ContainerData containerData;
-    for (HddsDatanodeService datanodeService : ozoneCluster
-        .getHddsDatanodes()) {
-      if (datanode.equals(datanodeService.getDatanodeDetails())) {
-        containerData =
-            datanodeService.getDatanodeStateMachine().getContainer()
-                .getContainerSet().getContainer(containerID).getContainerData();
-        return containerData.isClosed();
-      }
-    }
-    return false;
+  private static boolean isContainerClosed(MiniOzoneCluster ozoneCluster,
+      long containerID, DatanodeDetails datanode) {
+    return isContainerInState(ozoneCluster, containerID, datanode,
+        ContainerProtos.ContainerDataProto.State.CLOSED);
   }
 
-  private Boolean isContainerQuasiClosed(MiniOzoneCluster miniCluster,
+  private static boolean isContainerQuasiClosed(MiniOzoneCluster miniCluster,
       long containerID, DatanodeDetails datanode) {
+    return isContainerInState(miniCluster, containerID, datanode,
+        ContainerProtos.ContainerDataProto.State.QUASI_CLOSED);
+  }
+
+  private static boolean isContainerInState(MiniOzoneCluster miniCluster,
+      long containerID, DatanodeDetails datanode,
+      ContainerProtos.ContainerDataProto.State state) {
     ContainerData containerData;
     for (HddsDatanodeService datanodeService : miniCluster.getHddsDatanodes()) {
       if (datanode.equals(datanodeService.getDatanodeDetails())) {
         containerData =
             datanodeService.getDatanodeStateMachine().getContainer()
                 .getContainerSet().getContainer(containerID).getContainerData();
-        return containerData.isQuasiClosed();
+        LOG.info("Container {} is in state: {}",
+            containerID, containerData.getState());
+        return containerData.getState() == state;
       }
     }
     return false;
