@@ -88,7 +88,11 @@ public class XceiverClientMetrics {
 
   public void decrPendingContainerOpsMetrics(ContainerProtos.Type type) {
     pendingOps.incr(-1);
-    pendingOpsArray[type.ordinal()].incr(-1);
+    MutableCounterLong ops = pendingOpsArray[type.ordinal()];
+    if (ops.value() == 0) {
+      throw new IllegalStateException("pending " + type + " < 0");
+    }
+    ops.incr(-1);
   }
 
   public void addContainerOpsLatency(ContainerProtos.Type type,
