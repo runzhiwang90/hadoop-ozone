@@ -442,7 +442,8 @@ public class XceiverClientGrpc extends XceiverClientSpi {
               @Override
               public void onNext(ContainerCommandResponseProto value) {
                 Preconditions.checkState(!replyFuture.isDone(), "Received " +
-                    "value: " + value + " but already completed: " + replyFuture);
+                    "value: " + value + " but already completed: " +
+                    replyFuture);
                 replyFuture.complete(value);
                 metrics.decrPendingContainerOpsMetrics(request.getCmdType());
                 metrics.addContainerOpsLatency(request.getCmdType(),
