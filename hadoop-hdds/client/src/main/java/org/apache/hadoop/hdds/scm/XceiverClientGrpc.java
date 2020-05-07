@@ -441,6 +441,8 @@ public class XceiverClientGrpc extends XceiverClientSpi {
             .send(new StreamObserver<ContainerCommandResponseProto>() {
               @Override
               public void onNext(ContainerCommandResponseProto value) {
+                Preconditions.checkState(!replyFuture.isDone(), "Received " +
+                    "value: " + value + " but already completed: " + replyFuture);
                 replyFuture.complete(value);
                 metrics.decrPendingContainerOpsMetrics(request.getCmdType());
                 metrics.addContainerOpsLatency(request.getCmdType(),
@@ -450,6 +452,8 @@ public class XceiverClientGrpc extends XceiverClientSpi {
 
               @Override
               public void onError(Throwable t) {
+                Preconditions.checkState(!replyFuture.isDone(), "Received " +
+                    "error: " + t + " but already completed: " + replyFuture);
                 replyFuture.completeExceptionally(t);
                 metrics.decrPendingContainerOpsMetrics(request.getCmdType());
                 metrics.addContainerOpsLatency(request.getCmdType(),
