@@ -23,13 +23,16 @@ OZONE_VERSION=$(grep "<ozone.version>" "pom.xml" | sed 's/<[^>]*>//g'|  sed 's/^
 DIST_DIR="$DIR/../../dist/target/ozone-$OZONE_VERSION"
 
 if [ ! -d "$DIST_DIR" ]; then
-    echo "Distribution dir is missing. Doing a full build"
-    "$DIR/build.sh"
+  echo "Distribution dir is missing. Doing a full build"
+  df -k
+  "$DIR/build.sh"
 fi
 
 cd "$DIST_DIR/compose" || exit 1
+df -k
 ./test-all.sh
 RES=$?
+df -k
 cp result/* "$REPORT_DIR/"
 cp "$REPORT_DIR/log.html" "$REPORT_DIR/summary.html"
 exit $RES

@@ -23,10 +23,14 @@ REPORT_DIR=${OUTPUT_DIR:-"$DIR/../../../target/integration"}
 mkdir -p "$REPORT_DIR"
 
 export MAVEN_OPTS="-Xmx4096m"
+
+df -k
 mvn -B install -DskipTests
+df -k
 mvn -B -fae test -pl :hadoop-ozone-integration-test,:mini-chaos-tests "$@" \
   | tee "${REPORT_DIR}/output.log"
 rc=$?
+df -k
 
 # shellcheck source=hadoop-ozone/dev-support/checks/_mvn_unit_report.sh
 source "$DIR/_mvn_unit_report.sh"
