@@ -24,17 +24,26 @@ mkdir -p "$REPORT_DIR"
 
 export MAVEN_OPTS="-Xmx4096m"
 mvn -B install -DskipTests
-mvn -B -fae test -pl :hadoop-ozone-integration-test,:mini-chaos-tests "$@" \
-  | tee "${REPORT_DIR}/output.log"
-rc=$?
 
-#Archive combined jacoco records
-mvn -B -N jacoco:merge -Djacoco.destFile=$REPORT_DIR/jacoco-combined.exec
+rc=0
+for i in {1..20}; do
+  original_report_dir="${REPORT_DIR}"
+  REPORT_DIR="${original_report_dir}/iteration${i}"
+  mkdir -p "${REPORT_DIR}"
 
-# shellcheck source=hadoop-ozone/dev-support/checks/_mvn_unit_report.sh
-source "$DIR/_mvn_unit_report.sh"
+  mvn -B -fae test -pl :hadoop-ozone-integration-test "$@" \
+    | tee "${REPORT_DIR}/output.log"
+  irc=$?
 
-if [[ -s "$REPORT_DIR/summary.txt" ]] ; then
-    exit 1
-fi
+  # shellcheck source=hadoop-ozone/dev-support/checks/_mvn_unit_report.sh
+  source "${DIR}/_mvn_unit_report.sh"
+
+  REPORT_DIR="${original_report_dir}"
+  echo "Iteration ${i} exit code: ${irc}" | tee -a "${REPORT_DIR}/output.log"
+
+  if [[ ${rc} == 0 ]]; then
+    rc=${irc}
+  fi
+done
+
 exit ${rc}
