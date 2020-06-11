@@ -66,9 +66,9 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-18.04
-    if: always()
     needs:
        - unit
+    if: always()
     steps:
        - name: Dump context
          env:
