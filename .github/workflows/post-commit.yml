@@ -223,6 +223,7 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-18.04
+    if: always()
     needs:
        - it-ozone
        - it-hdds-om
