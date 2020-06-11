@@ -67,9 +67,9 @@ jobs:
     name: coverage
     runs-on: ubuntu-18.04
     needs:
-       - build
+       - author
        - unit
-    if: needs.build.result == 'success'
+    if: needs.author.result == 'success'
     steps:
        - name: Dump context
          env:
