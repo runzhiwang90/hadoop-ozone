@@ -225,14 +225,12 @@ jobs:
     runs-on: ubuntu-18.04
     if: always()
     needs:
-       - it-ozone
-       - it-hdds-om
-       - it-client
-       - it-filesystem-contract
-       - it-filesystem
-       - it-freon
        - unit
     steps:
+       - name: Dump context
+         env:
+           NEEDS_CONTEXT: ${{ toJson(needs) }}
+         run: echo "$NEEDS_CONTEXT"
        - uses: actions/checkout@v2
        - uses: ./.github/buildenv
          with:
