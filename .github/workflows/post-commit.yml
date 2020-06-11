@@ -69,7 +69,7 @@ jobs:
     needs:
        - compile
        - unit
-    if: needs.compile.success()
+    if: needs.compile.result == 'success'
     steps:
        - name: Dump context
          env:
