@@ -124,6 +124,7 @@ jobs:
           - freon
           - hdds-om
           - ozone
+      fail-fast: false
     steps:
         - run: sudo mkdir mnt && sudo mount --bind /mnt `pwd`/mnt && sudo chmod 777 mnt
         - uses: actions/checkout@master
