@@ -16,89 +16,34 @@ name: build-branch
 on:
   - push
 jobs:
-  build:
-    name: compile
+  success:
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@master
-      - uses: ./.github/buildenv
-        with:
-          args: ./hadoop-ozone/dev-support/checks/build.sh
-  rat:
-    name: rat
+      - run: sleep 60
+      - run: exit 0
+  failure:
     runs-on: ubuntu-18.04
     steps:
-        - uses: actions/checkout@master
-        - uses: ./.github/buildenv
-          with:
-             args: ./hadoop-ozone/dev-support/checks/rat.sh
-        - uses: actions/upload-artifact@master
-          if: always()
-          with:
-            name: rat
-            path: target/rat
-  author:
-    name: author
+      - run: sleep 60
+      - run: exit 1
+  pre-condition:
     runs-on: ubuntu-18.04
     steps:
-        - uses: actions/checkout@master
-        - uses: ./.github/buildenv
-          with:
-             args: ./hadoop-ozone/dev-support/checks/author.sh
-        - uses: actions/upload-artifact@master
-          if: always()
-          with:
-            name: author
-            path: target/author
-  unit:
-    name: unit
-    runs-on: ubuntu-18.04
-    steps:
-        - uses: actions/checkout@master
-        - uses: ./.github/buildenv
-          with:
-             args: ./hadoop-ozone/dev-support/checks/unit.sh
-        - uses: actions/upload-artifact@master
-          if: always()
-          with:
-            name: unit
-            path: target/unit
+      - run: sleep 2
+      - run: exit 0
   coverage:
-    name: coverage
     runs-on: ubuntu-18.04
     needs:
-       - author
-       - unit
+       - pre-condition
+       - success
+       - failure
     if: |
-      needs.author.result == 'success' &&
-      needs.unit.result != ''
+      ! cancelled() &&
+      needs.pre-condition.result == 'success' &&
+      needs.success.result != '' &&
+      needs.failure.result != ''
     steps:
        - name: Dump context
          env:
            NEEDS_CONTEXT: ${{ toJson(needs) }}
          run: echo "$NEEDS_CONTEXT"
-       - uses: actions/checkout@v2
-       - uses: ./.github/buildenv
-         with:
-            args: ./hadoop-ozone/dev-support/checks/build.sh
-       - uses: actions/download-artifact@v2
-         with:
-            path: target/artifacts
-       - run: ./.github/coverage-report.sh
-       - uses: ./.github/buildenv
-         if: github.repository == 'apache/hadoop-ozone'
-         with:
-           args: ./hadoop-ozone/dev-support/checks/sonar.sh
-         env:
-           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
-           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-       - name: Upload coverage to Codecov
-         uses: codecov/codecov-action@v1
-         with:
-           file: ./target/coverage/all.xml
-           name: codecov-umbrella
-           fail_ci_if_error: true
-       - uses: actions/upload-artifact@master
-         with:
-           name: coverage
-           path: target/coverage
