@@ -69,7 +69,9 @@ jobs:
     needs:
        - author
        - unit
-    if: needs.author.result == 'success'
+    if: |
+      needs.author.result == 'success' &&
+      needs.unit.result != ''
     steps:
        - name: Dump context
          env:
