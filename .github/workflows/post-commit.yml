@@ -235,7 +235,7 @@ jobs:
        - uses: actions/checkout@v2
        - uses: ./.github/buildenv
          with:
-            args: ./hadoop-ozone/dev-support/checks/build.sh
+            args: ./hadoop-ozone/dev-support/checks/build.sh -Dskip.yarn
        - uses: actions/download-artifact@v2
          with:
             path: target/artifacts
