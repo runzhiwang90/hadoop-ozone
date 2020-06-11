@@ -33,7 +33,7 @@ public @interface Config {
   /**
    * Configuration fragment relative to the prefix defined with @ConfigGroup.
    */
-  tring key();
+  String key();
 
   /**
    * Default value to use if not set.
