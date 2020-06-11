@@ -125,6 +125,8 @@ public class TestFilePerChunkStrategy extends CommonChunkManagerTestCases {
     // THEN
     checkChunkFileCount(0);
     assertFalse(file.exists());
+
+    org.junit.Assert.fail("Testing coverage");
   }
 
 }
