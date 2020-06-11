@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-18.04
     needs:
        - unit
-    if: needs.unit.result != ""
+    if: ${{ needs.unit.result != "" }}
     steps:
        - name: Dump context
          env:
