@@ -19,18 +19,18 @@ jobs:
   success:
     runs-on: ubuntu-18.04
     steps:
-      - run: sleep 60
+      - run: sleep 20
       - run: exit 0
   failure:
     runs-on: ubuntu-18.04
     steps:
-      - run: sleep 60
+      - run: sleep 20
       - run: exit 1
   pre-condition:
     runs-on: ubuntu-18.04
     steps:
       - run: sleep 2
-      - run: exit 1
+      - run: exit 0
   coverage:
     runs-on: ubuntu-18.04
     needs:
@@ -39,9 +39,7 @@ jobs:
        - failure
     if: |
       ! cancelled() &&
-      needs.pre-condition.result == 'success' &&
-      needs.success.result != '' &&
-      needs.failure.result != ''
+      needs.pre-condition.result == 'success'
     steps:
        - name: Dump context
          env:
