@@ -22,6 +22,9 @@ jobs:
       - uses: actions/checkout@master
       - uses: ./.github/buildenv
         with:
+          args: hadoop-ozone/dev-support/checks/build.sh
+      - uses: ./.github/buildenv
+        with:
           args: hadoop-ozone/dev-support/checks/unit.sh -DfailIfNoTests=false -Dtest=TestConfigFileAppender
       - run: ./.github/coverage-report.sh
       - name: Upload coverage to Codecov
