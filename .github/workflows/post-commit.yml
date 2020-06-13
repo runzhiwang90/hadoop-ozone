@@ -16,13 +16,14 @@ name: build-branch
 on:
   - push
 jobs:
-  test:
+  combined:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@master
       - uses: ./.github/buildenv
         with:
-          args: hadoop-ozone/dev-support/checks/combined.sh
+          args: hadoop-ozone/dev-support/checks/unit.sh
+      - run: ./.github/coverage-report.sh
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
