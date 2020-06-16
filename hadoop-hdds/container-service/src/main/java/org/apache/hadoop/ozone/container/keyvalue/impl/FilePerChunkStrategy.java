@@ -41,7 +41,6 @@ import org.apache.hadoop.ozone.container.common.interfaces.Container;
 import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.IO_EXCEPTION;
 import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNABLE_TO_FIND_CHUNK;
 
-import org.eclipse.jetty.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +51,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos.Result.UNSUPPORTED_REQUEST;
 import static org.apache.hadoop.ozone.container.common.impl.ChunkLayOutVersion.FILE_PER_CHUNK;
@@ -75,27 +75,6 @@ public class FilePerChunkStrategy implements ChunkManager {
   private static void checkLayoutVersion(Container container) {
     Preconditions.checkArgument(
         container.getContainerData().getLayOutVersion() == FILE_PER_CHUNK);
-  }
-
-  private static int extractChunkIndex(String chunkName) {
-    int index = -1;
-    if (StringUtil.isBlank(chunkName)) {
-      LOG.error("Failed to parse empty chuck name to get index");
-      return index;
-    }
-
-    String[] subNames = chunkName.split("_");
-    if (subNames.length != 3) {
-      LOG.error("Failed to parse chuck name to get index " + chunkName);
-      return index;
-    }
-
-    try {
-      index = Integer.parseInt(subNames[2]);
-    } catch (Exception e) {
-      LOG.error("Failed to parse chuck name to get index " + chunkName);
-    }
-    return index;
   }
 
   /**
@@ -244,31 +223,26 @@ public class FilePerChunkStrategy implements ChunkManager {
     long len = info.getLen();
     ByteBuffer data = ByteBuffer.allocate((int) len);
 
-    int index = extractChunkIndex(info.getChunkName());
-    if (index == -1) {
-      throw new StorageContainerException(
-          "Chunk file name can't be parsed " + possibleFiles.toString(),
-          UNABLE_TO_FIND_CHUNK);
-    }
-    // Chunk index start from 1
-    Preconditions.checkState(index > 0);
-
-    long chunkFileOffset;
-    try {
-      BlockData blockData = blockManager.getBlock(kvContainer, blockID);
-      List<ContainerProtos.ChunkInfo> chunks = blockData.getChunks();
-      Preconditions.checkState(index <= chunks.size());
-      chunkFileOffset = chunks.get(index - 1).getOffset();
-    } catch (IOException e) {
-      throw new StorageContainerException(
-          "Cannot find block " + blockID.toString() + " for chunk " +
-              info.getChunkName(), UNABLE_TO_FIND_CHUNK);
+    long offset = 0;
+    if (info.getOffset() > 0) {
+      try {
+        BlockData blockData = blockManager.getBlock(kvContainer, blockID);
+        List<ContainerProtos.ChunkInfo> chunks = blockData.getChunks();
+        for (ContainerProtos.ChunkInfo chunk : chunks) {
+          if (Objects.equals(info.getChunkName(), chunk.getChunkName())) {
+            offset = info.getOffset() - chunk.getOffset();
+          }
+        }
+      } catch (IOException e) {
+        throw new StorageContainerException(
+            "Cannot find block " + blockID.toString() + " for chunk " +
+                info.getChunkName(), UNABLE_TO_FIND_CHUNK);
+      }
     }
 
     for (File file : possibleFiles) {
       try {
         if (file.exists()) {
-          long offset = info.getOffset() - chunkFileOffset;
           Preconditions.checkState(offset < file.length());
           Preconditions.checkState((offset + len) <= file.length());
           ChunkUtils.readData(file, data, offset, len, volumeIOStats);
