@@ -93,7 +93,7 @@ public class TestKeyInputStream {
    */
   @Before
   public void init() throws Exception {
-    chunkSize = 1024 * 1024 * 4;
+    chunkSize = 1024 * 4;
     flushSize = 4 * chunkSize;
     maxFlushSize = 2 * flushSize;
     blockSize = 2 * maxFlushSize;
@@ -101,7 +101,7 @@ public class TestKeyInputStream {
     conf.setTimeDuration(OZONE_SCM_STALENODE_INTERVAL, 3, TimeUnit.SECONDS);
     conf.setQuietMode(false);
     conf.setStorageSize(OzoneConfigKeys.OZONE_SCM_BLOCK_SIZE, 64,
-        StorageUnit.MB);
+        StorageUnit.KB);
     conf.set(ScmConfigKeys.OZONE_SCM_CHUNK_LAYOUT_KEY, chunkLayout.name());
     cluster = MiniOzoneCluster.newBuilder(conf)
         .setNumDatanodes(3)
@@ -386,7 +386,8 @@ public class TestKeyInputStream {
             Arrays.copyOfRange(originData, totalRead, totalRead + numBytesRead);
         byte[] tmp2 =
             Arrays.copyOfRange(data, 0, numBytesRead);
-        Arrays.equals(tmp1, tmp2);
+        Assert.assertArrayEquals(tmp1, tmp2);
+        totalRead += numBytesRead;
       }
       keyInputStream.seek(0);
     }
