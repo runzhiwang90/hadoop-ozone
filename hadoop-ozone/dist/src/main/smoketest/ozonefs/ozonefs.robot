@@ -17,7 +17,6 @@
 Documentation       Ozone FS tests
 Library             OperatingSystem
 Resource            ../commonlib.robot
-Resource            ../lib/fs.robot
 Resource            setup.robot
 Test Timeout        5 minutes
 Suite Setup         Setup ${BUCKET_TYPE}s for FS test

@@ -16,6 +16,7 @@
 *** Settings ***
 Documentation       Setup for Ozone FS tests
 Resource            ../commonlib.robot
+Resource            ../lib/fs.robot
 
 *** Variables ***
 ${SCHEME}            ofs
