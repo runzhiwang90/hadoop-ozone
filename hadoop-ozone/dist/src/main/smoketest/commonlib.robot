@@ -65,3 +65,59 @@ Kinit test user
     ${hostname} =       Execute                    hostname
     Set Suite Variable  ${TEST_USER}               ${user}/${hostname}@EXAMPLE.COM
     Wait Until Keyword Succeeds      2min       10sec      Execute            kinit -k ${user}/${hostname}@EXAMPLE.COM -t /etc/security/keytabs/${keytab}
+
+Should Match Local File
+    [arguments]    ${key}    ${file}
+    Execute        ozone sh key get -f ${key} /tmp/tempkey
+    Execute        diff -q ${file} /tmp/tempkey
+    Execute        rm -f /tmp/tempkey
+
+Verify ACL
+    [arguments]         ${object_type}   ${object}    ${type}   ${name}    ${acls}
+    ${actual_acls} =    Execute          ozone sh ${object_type} getacl ${object} | jq -r '.[] | select(.type == "${type}") | select(.name == "${name}") | .aclList[]' | xargs
+                        Should Be Equal    ${acls}    ${actual_acls}
+
+Ensure Leading
+    [arguments]    ${char}    ${string}
+
+    ${first} =     Get Substring      ${string}                  0            1
+    ${result} =    Set Variable If    '${first}' == '${char}'    ${string}    ${char}${string}
+
+    [return]       ${result}
+
+
+Ensure Trailing
+    [arguments]    ${char}    ${string}
+
+    ${last} =      Get Substring      ${string}                 -1
+    ${result} =    Set Variable If    '${last}' == '${char}'    ${string}    ${string}${char}
+
+    [return]       ${result}
+
+
+Format FS URL
+    [arguments]    ${scheme}    ${volume}    ${bucket}    ${path}=${EMPTY}
+
+    ${url} =       Run Keyword If    '${scheme}' == 'o3fs'    Format o3fs URL    ${volume}    ${bucket}    ${path}
+    ...            ELSE IF           '${scheme}' == 'ofs'     Format ofs URL     ${volume}    ${bucket}    ${path}
+    ...            ELSE              Fail                     Unsupported FS scheme: ${scheme}
+
+    [return]       ${url}
+
+Format o3fs URL
+    [arguments]    ${volume}    ${bucket}    ${path}=${EMPTY}    ${om}=${OM_SERVICE_ID}
+    ${om_with_leading} =     Run Keyword If    '${om}' != '${EMPTY}'      Ensure Leading    .    ${om}
+    ...                      ELSE              Set Variable    ${EMPTY}
+    [return]       o3fs://${bucket}.${volume}${om_with_leading}/${path}
+
+Format ofs URL
+    [arguments]    ${volume}    ${bucket}    ${path}=${EMPTY}    ${om}=${OM_SERVICE_ID}
+
+    ${om_with_trailing} =     Run Keyword If    '${om}' != '${EMPTY}'      Ensure Trailing   /    ${om}
+    ...                       ELSE              Set Variable    ${EMPTY}
+
+    ${path_with_leading} =    Run Keyword If    '${path}' != '${EMPTY}'    Ensure Leading    /    ${path}
+    ...                       ELSE              Set Variable    ${EMPTY}
+
+    [return]       ofs://${om_with_trailing}${volume}/${bucket}${path_with_leading}
+

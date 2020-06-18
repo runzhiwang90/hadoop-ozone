@@ -17,132 +17,152 @@
 Documentation       Ozonefs test covering both o3fs and ofs
 Library             OperatingSystem
 Resource            ../commonlib.robot
+Resource            setup.robot
 Test Timeout        5 minutes
+Suite Setup         Setup ${BUCKET_TYPE}s for FS test
 
 *** Variables ***
-${OfsBucket1}          om:9862/fstest/bucket1
-${O3fsBucket1}         bucket1.fstest/
-${O3Bucket1}           o3://om/fstest/bucket1
-${O3Bucket2}           o3://om/fstest/bucket2
-${O3Bucket3}           o3://om/fstest2/bucket3
-
-${OfsNonExistBucket}      om:9862/abc/def
-${O3fsNonExistBucket}     def.abc/
-${NonExistVolume}         abc
+${scheme}     ofs
 
 *** Test Cases ***
-Create volume and bucket for Ozone file System test
-    Execute             ozone sh volume create o3://om/fstest --quota 100TB
-    Execute             ozone sh bucket create ${O3Bucket1}
-    Execute             ozone sh bucket create ${O3Bucket2}
+Test single FS operations
+    [Template]    Test ${scheme} FS
+    ofs
+    o3fs
 
-    Execute             ozone sh volume create o3://om/fstest2 --quota 100TB
-    Execute             ozone sh bucket create ${O3Bucket3}
+Test cross-FS operations
+    [Template]    Test cross-FS operations from ${scheme} to ${scheme2}
+    ${scheme}    ofs
+    ${scheme}    o3fs
 
+List root
+    [Template]    List root
+    ofs
+    o3fs
 
-Check volume from o3fs
-    ${result} =         Execute               ozone sh volume list
-                        Should contain    ${result}         fstest
-                        Should contain    ${result}         fstest2
-                        Should Match Regexp  ${result}      "admin" : "(hadoop|testuser\/scm@EXAMPLE\.COM)"
-    ${result} =         Execute               ozone fs -ls o3fs://${O3fsBucket1}
+List non-existent volume
+    [Template]    List non-existent volume
+    ofs
+    o3fs
 
-Test ozone shell with ofs
-   Test ozone shell with scheme  ofs    om:9862/fstest/bucket1      om:9862/fstest/bucket2      om:9862/fstest2/bucket3      om:9862/abc/def
+List non-existent bucket
+    [Template]    List non-existent bucket
+    ofs
+    o3fs
 
-Test ozone shell with o3fs
-   Test ozone shell with scheme  o3fs   bucket1.fstest/             bucket2.fstest/             bucket3.fstest2/             def.abc/
 
 *** Keywords ***
-Test ozone shell with scheme
-    [arguments]         ${scheme}             ${testBucket1}        ${testBucket2}      ${testBucket3}      ${nonExistBucket}
+Test ${scheme} FS
+    ${base_url} =       Format FS URL    ${scheme}     ${VOLUME}    ${BUCKET}    /
+    ${deep_dir} =       Set Variable      test/${scheme}/dir
+    ${deep_url} =       Set Variable      ${base_url}${deep_dir}
 
-    ${result} =         Execute               ozone fs -ls ${scheme}://${testBucket1}
-                        Execute               ozone fs -mkdir -p ${scheme}://${testBucket1}/testdir/deep
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
-                        Should contain    ${result}         testdir/deep
+                        Execute           ozone fs -mkdir -p ${deep_url}
+    ${result} =         Execute           ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
+                        Should contain    ${result}         ${deep_dir}
 
-                        Execute               ozone fs -copyFromLocal NOTICE.txt ${scheme}://${testBucket1}/testdir/deep/
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
+                        Execute           ozone fs -copyFromLocal NOTICE.txt ${deep_url}/
+    ${result} =         Execute           ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
                         Should contain    ${result}         NOTICE.txt
-    ${result} =         Execute               ozone sh key info o3://om/fstest/bucket1/testdir/deep/NOTICE.txt | jq -r '.replicationFactor'
+    ${result} =         Execute           ozone sh key info ${VOLUME}/${BUCKET}/${deep_dir}/NOTICE.txt | jq -r '.replicationFactor'
                         Should Be Equal   ${result}         3
 
-                        Execute               ozone fs -put NOTICE.txt ${scheme}://${testBucket1}/testdir/deep/PUTFILE.txt
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
+                        Execute               ozone fs -put NOTICE.txt ${deep_url}/PUTFILE.txt
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
                         Should contain    ${result}         PUTFILE.txt
 
-    ${result} =         Execute               ozone fs -ls ${scheme}://${testBucket1}/testdir/deep/
+    ${result} =         Execute               ozone fs -ls ${deep_url}/
                         Should contain    ${result}         NOTICE.txt
                         Should contain    ${result}         PUTFILE.txt
 
-                        Execute               ozone fs -mv ${scheme}://${testBucket1}/testdir/deep/NOTICE.txt ${scheme}://${testBucket1}/testdir/deep/MOVED.TXT
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
+                        Execute               ozone fs -mv ${deep_url}/NOTICE.txt ${deep_url}/MOVED.TXT
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
                         Should contain    ${result}         MOVED.TXT
                         Should not contain  ${result}       NOTICE.txt
 
-                        Execute               ozone fs -mkdir -p ${scheme}://${testBucket1}/testdir/deep/subdir1
-                        Execute               ozone fs -cp ${scheme}://${testBucket1}/testdir/deep/MOVED.TXT ${scheme}://${testBucket1}/testdir/deep/subdir1/NOTICE.txt
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
+                        Execute               ozone fs -mkdir -p ${deep_url}/subdir1
+                        Execute               ozone fs -cp ${deep_url}/MOVED.TXT ${deep_url}/subdir1/NOTICE.txt
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
                         Should contain    ${result}         subdir1/NOTICE.txt
 
-    ${result} =         Execute               ozone fs -ls ${scheme}://${testBucket1}/testdir/deep/subdir1/
+    ${result} =         Execute               ozone fs -ls ${deep_url}/subdir1/
                         Should contain    ${result}         NOTICE.txt
 
-                        Execute               ozone fs -cat ${scheme}://${testBucket1}/testdir/deep/subdir1/NOTICE.txt
+                        Execute               ozone fs -cat ${deep_url}/subdir1/NOTICE.txt
                         Should not contain  ${result}       Failed
 
-                        Execute               ozone fs -rm ${scheme}://${testBucket1}/testdir/deep/subdir1/NOTICE.txt
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
+                        Execute               ozone fs -rm ${deep_url}/subdir1/NOTICE.txt
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
                         Should not contain  ${result}       NOTICE.txt
 
-    ${result} =         Execute               ozone fs -rmdir ${scheme}://${testBucket1}/testdir/deep/subdir1/
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
+    ${result} =         Execute               ozone fs -rmdir ${deep_url}/subdir1/
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
                         Should not contain  ${result}       subdir1
 
-                        Execute               ozone fs -touch ${scheme}://${testBucket1}/testdir/TOUCHFILE.txt
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
-                        Should contain  ${result}       TOUCHFILE.txt
+                        Execute               ozone fs -touch ${base_url}${deep_dir}/TOUCHFILE-${scheme}.txt
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
+                        Should contain  ${result}       TOUCHFILE-${scheme}.txt
 
-                        Execute               ozone fs -rm -r ${scheme}://${testBucket1}/testdir/
-    ${result} =         Execute               ozone sh key list ${O3Bucket1} | jq -r '.name'
-                        Should not contain  ${result}       testdir
+                        Execute               ozone fs -rm -r ${base_url}${deep_dir}/
+    ${result} =         Execute               ozone sh key list ${VOLUME}/${BUCKET} | jq -r '.name'
+                        Should not contain  ${result}       ${deep_dir}
 
                         Execute               rm -Rf /tmp/localdir1
                         Execute               mkdir /tmp/localdir1
                         Execute               cp NOTICE.txt /tmp/localdir1/LOCAL.txt
-                        Execute               ozone fs -mkdir -p ${scheme}://${testBucket1}/testdir1
-                        Execute               ozone fs -copyFromLocal /tmp/localdir1 ${scheme}://${testBucket1}/testdir1/
-                        Execute               ozone fs -put NOTICE.txt ${scheme}://${testBucket1}/testdir1/NOTICE.txt
+                        Execute               ozone fs -mkdir -p ${base_url}testdir1
+                        Execute               ozone fs -copyFromLocal /tmp/localdir1 ${base_url}testdir1/
+                        Execute               ozone fs -put NOTICE.txt ${base_url}testdir1/NOTICE.txt
 
-    ${result} =         Execute               ozone fs -ls -R ${scheme}://${testBucket1}/testdir1/
+    ${result} =         Execute               ozone fs -ls -R ${base_url}testdir1/
                         Should contain    ${result}         localdir1/LOCAL.txt
                         Should contain    ${result}         testdir1/NOTICE.txt
 
-                        Execute               ozone fs -mkdir -p ${scheme}://${testBucket2}/testdir2
-                        Execute               ozone fs -mkdir -p ${scheme}://${testBucket3}/testdir3
+                        Execute               ozone sh key put ${VOLUME}/${BUCKET}/${scheme}.txt NOTICE.txt
+    ${result} =         Execute               ozone fs -ls ${base_url}${scheme}.txt
+                        Should contain    ${result}         ${scheme}.txt
 
-                        Execute               ozone fs -cp ${scheme}://${testBucket1}/testdir1/localdir1 ${scheme}://${testBucket2}/testdir2/
-                        Execute               ozone fs -cp ${scheme}://${testBucket1}/testdir1/localdir1 ${scheme}://${testBucket3}/testdir3/
-
-                        Execute               ozone sh key put ${O3Bucket1}/KEY.txt NOTICE.txt
-    ${result} =         Execute               ozone fs -ls ${scheme}://${testBucket1}/KEY.txt
-                        Should contain    ${result}         KEY.txt
-
-    ${rc}  ${result} =  Run And Return Rc And Output        ozone fs -copyFromLocal NOTICE.txt ${scheme}://${testBucket1}/KEY.txt
+    ${rc}  ${result} =  Run And Return Rc And Output        ozone fs -copyFromLocal NOTICE.txt ${base_url}${scheme}.txt
                         Should Be Equal As Integers     ${rc}                1
                         Should contain    ${result}         File exists
 
                         Execute               rm -Rf /tmp/GET.txt
-                        Execute               ozone fs -get ${scheme}://${testBucket1}/KEY.txt /tmp/GET.txt
+                        Execute               ozone fs -get ${base_url}${scheme}.txt /tmp/GET.txt
                         Execute               ls -l /tmp/GET.txt
 
-    ${rc}  ${result} =  Run And Return Rc And Output        ozone fs -ls ${scheme}://${nonExistBucket}
-                        Should Be Equal As Integers     ${rc}                1
-                        Should Match Regexp    ${result}         (Check access operation failed)|(Volume ${nonExistVolume} is not found)|(No such file or directory)
+Test cross-FS operations from ${scheme1} to ${scheme2}
+    Cross-FS copy    ${scheme1}    ${VOLUME}    ${BUCKET}    ${scheme2}    ${VOLUME}    ${BUCKET2}
+    Cross-FS copy    ${scheme1}    ${VOLUME}    ${BUCKET}    ${scheme2}    ${VOL2}      ${BUCKET_IN_VOL2}
 
-# Final clean up before next run
-                        Execute               ozone fs -rm -r ${scheme}://${testBucket1}/testdir1/
-                        Execute               ozone fs -rm -r ${scheme}://${testBucket2}/testdir2/
-                        Execute               ozone fs -rm -r ${scheme}://${testBucket3}/testdir3/
-                        Execute               ozone fs -rm -r ${scheme}://${testBucket1}/*
+
+Cross-FS copy
+    [arguments]    ${scheme1}    ${vol1}    ${bucket1}    ${scheme2}    ${vol2}    ${bucket2}
+
+    ${base1} =     Format FS URL    ${scheme1}    ${vol1}    ${bucket1}   /
+    ${base2} =     Format FS URL    ${scheme2}    ${vol2}    ${bucket2}   /
+    ${target} =    Set Variable    ${base2}/${scheme1}-${scheme2}
+    Execute        ozone fs -mkdir ${target}
+    Execute        ozone fs -cp ${base1}testdir1/localdir1 ${target}/
+
+List root
+    [arguments]    ${scheme}
+
+    ${root} =           Format FS URL    ${scheme}     ${VOLUME}    ${BUCKET}
+                        Execute           ozone fs -ls ${root}
+
+
+List non-existent volume
+    [arguments]    ${scheme}
+
+    ${url} =       Format FS URL          ${scheme}    no-such-volume    ${BUCKET}
+    ${result} =    Execute and checkrc    ozone fs -ls ${url}     1
+                   Should Match Regexp    ${result}         (Check access operation failed)|(Volume no-such-volume not found)|(No such file or directory)
+
+
+List non-existent bucket
+    [arguments]    ${scheme}
+
+    ${url} =       Format FS URL          ${scheme}    ${VOLUME}    no-such-bucket
+    ${result} =    Execute and checkrc    ozone fs -ls ${url}     1
+                   Should Match Regexp    ${result}         (Check access operation failed)|(Bucket not found)|(No such file or directory)
+
