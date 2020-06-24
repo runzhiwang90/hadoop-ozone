@@ -23,6 +23,9 @@ services:
     ports:
       - 9864
     command: ["/opt/hadoop/bin/ozone","datanode"]
+    environment:
+      HADOOP_OPTS:
+      WAITFOR:
     env_file:
       - docker-config
       - ../common-config
@@ -35,6 +38,7 @@ services:
       - 9874:9874
       - 9862:9862
     environment:
+      HADOOP_OPTS:
       WAITFOR: scm:9876
       ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
     env_file:
@@ -48,6 +52,9 @@ services:
       - ../../..:/opt/hadoop
     ports:
       - 9878:9878
+    environment:
+      HADOOP_OPTS:
+      WAITFOR:
     env_file:
       - ./docker-config
       - ../common-config
@@ -65,6 +72,8 @@ services:
     environment:
       ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
       OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-1}"
+      HADOOP_OPTS:
+      WAITFOR:
     command: ["/opt/hadoop/bin/ozone","scm"]
   rm:
     image: ${HADOOP_IMAGE}:${HADOOP_VERSION}

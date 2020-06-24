@@ -38,6 +38,7 @@ services:
       WAITFOR: scm:9876
       ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     env_file:
       - docker-config
       - ../common-config
@@ -54,6 +55,7 @@ services:
       - ../common-config
     environment:
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["/opt/hadoop/bin/ozone","s3g"]
   scm:
     image: apache/ozone-runner:${OZONE_RUNNER_VERSION}
@@ -69,6 +71,7 @@ services:
       ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
       OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-1}"
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["/opt/hadoop/bin/ozone","scm"]
   rm:
     image: ${HADOOP_IMAGE}:${HADOOP_VERSION}

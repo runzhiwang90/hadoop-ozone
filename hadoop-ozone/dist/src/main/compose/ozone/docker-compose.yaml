@@ -38,12 +38,14 @@ services:
     environment:
       <<: *replication
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["ozone","datanode"]
   om:
     <<: *common-config
     environment:
       ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
       <<: *replication
     ports:
       - 9874:9874
@@ -57,12 +59,14 @@ services:
       ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
       OZONE-SITE.XML_hdds.scm.safemode.min.datanode: ${OZONE_SAFEMODE_MIN_DATANODES:-1}
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
       <<: *replication
     command: ["ozone","scm"]
   s3g:
     <<: *common-config
     environment:
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
       <<: *replication
     ports:
       - 9878:9878
@@ -73,5 +77,6 @@ services:
       - 9888:9888
     environment:
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
       <<: *replication
     command: ["ozone","recon"]

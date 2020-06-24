@@ -25,6 +25,7 @@ services:
       - docker-config
     environment:
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     ports:
       - 9864
       - 9882
@@ -38,6 +39,7 @@ services:
     environment:
       ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     ports:
       - 9874:9874
       - 9862:9862
@@ -53,6 +55,7 @@ services:
     environment:
       ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["ozone","scm"]
   csi:
     image: apache/ozone-runner:${OZONE_RUNNER_VERSION}
@@ -62,4 +65,5 @@ services:
       - docker-config
     environment:
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["ozone","csi"]

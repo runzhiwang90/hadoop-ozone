@@ -28,6 +28,7 @@ rm "$ALL_RESULT_DIR/*" || true
 if [ "$OZONE_WITH_COVERAGE" ]; then
   export COMPOSE_FILE=docker-compose.yaml:jacoco.yaml
   export HADOOP_OPTS="-javaagent:share/coverage/jacoco-agent.jar=output=tcpclient,address=jacoco,includes=org.apache.hadoop.ozone.*:org.apache.hadoop.hdds.*:org.apache.hadoop.fs.ozone.*"
+  export WAITFOR=jacoco:6300
 fi
 
 RESULT=0

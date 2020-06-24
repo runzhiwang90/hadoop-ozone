@@ -49,6 +49,7 @@ services:
     environment:
       KERBEROS_KEYTABS: dn HTTP
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
   om:
     image: apache/ozone-runner:${OZONE_RUNNER_VERSION}
     hostname: om
@@ -63,6 +64,7 @@ services:
       ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
       KERBEROS_KEYTABS: om HTTP testuser
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     env_file:
       - docker-config
     command: ["/opt/hadoop/bin/ozone","om"]
@@ -80,6 +82,7 @@ services:
     environment:
       KERBEROS_KEYTABS: s3g HTTP
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["/opt/hadoop/bin/ozone","s3g"]
   scm:
     image: apache/ozone-runner:${OZONE_RUNNER_VERSION}
@@ -97,6 +100,7 @@ services:
       OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "${OZONE_SAFEMODE_MIN_DATANODES:-1}"
       KERBEROS_KEYTABS: scm HTTP
       HADOOP_OPTS: ${HADOOP_OPTS}
+      WAITFOR:
     command: ["/opt/hadoop/bin/ozone","scm"]
   rm:
     image: apache/hadoop:${HADOOP_VERSION}
