@@ -15,14 +15,12 @@
 # limitations under the License.
 
 version: "3.5"
+
 services:
-  freon:
+  jacoco:
     image: apache/ozone-runner:${OZONE_RUNNER_VERSION}
     volumes:
       - ../..:/opt/hadoop
-    env_file:
-      - docker-config
-      - monitoring.conf
-    environment:
-      - "OZONE-SITE.XML_ozone.replication=${OZONE_REPLICATION_FACTOR:-1}"
-    command: ["ozone","freon","rk"]
+    command: "java -cp share/coverage/hadoop-hdds-test-utils-${HDDS_VERSION}.jar:share/coverage/jacoco-core.jar org.apache.hadoop.test.JacocoServer"
+    networks:
+      net:

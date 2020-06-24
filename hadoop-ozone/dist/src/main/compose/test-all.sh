@@ -26,33 +26,35 @@ mkdir -p "$ALL_RESULT_DIR"
 rm "$ALL_RESULT_DIR/*" || true
 
 if [ "$OZONE_WITH_COVERAGE" ]; then
-   java -cp "$PROJECT_DIR"/share/coverage/$(ls "$PROJECT_DIR"/share/coverage | grep test-util):"$PROJECT_DIR"/share/coverage/jacoco-core.jar org.apache.hadoop.test.JacocoServer &
-   DOCKER_BRIDGE_IP=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')
-   export HADOOP_OPTS="-javaagent:share/coverage/jacoco-agent.jar=output=tcpclient,address=$DOCKER_BRIDGE_IP,includes=org.apache.hadoop.ozone.*:org.apache.hadoop.hdds.*:org.apache.hadoop.fs.ozone.*"
+  export COMPOSE_FILE=docker-compose.yaml:jacoco.yaml
+  export HADOOP_OPTS="-javaagent:share/coverage/jacoco-agent.jar=output=tcpclient,address=jacoco,includes=org.apache.hadoop.ozone.*:org.apache.hadoop.hdds.*:org.apache.hadoop.fs.ozone.*"
 fi
 
 RESULT=0
 IFS=$'\n'
 # shellcheck disable=SC2044
 for test in $(find "$SCRIPT_DIR" -name test.sh | grep "${OZONE_TEST_SELECTOR:-""}" |sort); do
-  echo "Executing test in $(dirname "$test")"
+  dir=$(dirname "${test}")
+  echo "Executing test in ${dir}"
 
   #required to read the .env file from the right location
-  cd "$(dirname "$test")" || continue
+  cd "${dir}" || continue
   ./test.sh
   ret=$?
   if [[ $ret -ne 0 ]]; then
       RESULT=1
-      echo "ERROR: Test execution of $(dirname "$test") is FAILED!!!!"
+      echo "ERROR: Test execution of ${dir} is FAILED!!!!"
   fi
-  RESULT_DIR="$(dirname "$test")/result"
-  cp "$RESULT_DIR"/robot-*.xml "$RESULT_DIR"/docker-*.log "$RESULT_DIR"/*.out* "$ALL_RESULT_DIR"/
+  RESULT_DIR="${dir}/result"
+  cp -v "$RESULT_DIR"/robot-*.xml "$RESULT_DIR"/docker-*.log "$RESULT_DIR"/*.out* "$ALL_RESULT_DIR"/
+
+  if [[ -n "$OZONE_WITH_COVERAGE" ]]; then
+    t=$(basename "${dir}")
+    mkdir -pv "${SCRIPT_DIR}"/result/"${t}"
+    mv -v "${RESULT_DIR}"/jacoco-combined.exec "${SCRIPT_DIR}"/result/"${t}"/
+  fi
 done
 
 rebot -N "smoketests" -d "$SCRIPT_DIR/result" "$SCRIPT_DIR/result/robot-*.xml"
-if [ "$OZONE_WITH_COVERAGE" ]; then
-  pkill -f JacocoServer
-  cp /tmp/jacoco-combined.exec "$SCRIPT_DIR"/result
-fi
 
 exit $RESULT

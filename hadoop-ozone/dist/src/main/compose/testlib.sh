@@ -17,7 +17,6 @@
 set -e
 
 COMPOSE_ENV_NAME=$(basename "$COMPOSE_DIR")
-COMPOSE_FILE=$COMPOSE_DIR/docker-compose.yaml
 RESULT_DIR=${RESULT_DIR:-"$COMPOSE_DIR/result"}
 RESULT_DIR_INSIDE="/tmp/smoketest/$(basename "$COMPOSE_ENV_NAME")/result"
 SMOKETEST_DIR_INSIDE="${OZONE_DIR:-/opt/hadoop}/smoketest"
@@ -40,8 +39,6 @@ create_results_dir() {
 ## @description wait until safemode exit (or 180 seconds)
 ## @param the docker-compose file
 wait_for_safemode_exit(){
-  local compose_file=$1
-
   #Reset the timer
   SECONDS=0
 
@@ -51,9 +48,9 @@ wait_for_safemode_exit(){
      #This line checks the safemode status in scm
      local command="ozone admin safemode status"
      if [[ "${SECURITY_ENABLED}" == 'true' ]]; then
-         status=$(docker-compose -f "${compose_file}" exec -T scm bash -c "kinit -k HTTP/scm@EXAMPLE.COM -t /etc/security/keytabs/HTTP.keytab && $command" || true)
+         status=$(docker-compose exec -T scm bash -c "kinit -k HTTP/scm@EXAMPLE.COM -t /etc/security/keytabs/HTTP.keytab && $command" || true)
      else
-         status=$(docker-compose -f "${compose_file}" exec -T scm bash -c "$command")
+         status=$(docker-compose exec -T scm bash -c "$command")
      fi
 
      echo $status
@@ -78,9 +75,9 @@ start_docker_env(){
 
   create_results_dir
   export OZONE_SAFEMODE_MIN_DATANODES="${datanode_count}"
-  docker-compose -f "$COMPOSE_FILE" --no-ansi down
-  if ! { docker-compose -f "$COMPOSE_FILE" --no-ansi up -d --scale datanode="${datanode_count}" \
-      && wait_for_safemode_exit "$COMPOSE_FILE"; }; then
+  docker-compose --no-ansi down
+  if ! { docker-compose --no-ansi up -d --scale datanode="${datanode_count}" \
+      && wait_for_safemode_exit; }; then
     OUTPUT_NAME="$COMPOSE_ENV_NAME"
     stop_docker_env
     return 1
@@ -103,12 +100,17 @@ execute_robot_test(){
   OUTPUT_NAME="$COMPOSE_ENV_NAME-$TEST_NAME-$CONTAINER"
   OUTPUT_PATH="$RESULT_DIR_INSIDE/robot-$OUTPUT_NAME.xml"
   # shellcheck disable=SC2068
-  docker-compose -f "$COMPOSE_FILE" exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE" \
-    && docker-compose -f "$COMPOSE_FILE" exec -T -e SECURITY_ENABLED="${SECURITY_ENABLED}" -e OM_HA_PARAM="${OM_HA_PARAM}" -e OM_SERVICE_ID="${OM_SERVICE_ID}" "$CONTAINER" robot ${ARGUMENTS[@]} --log NONE -N "$TEST_NAME" --report NONE "${OZONE_ROBOT_OPTS[@]}" --output "$OUTPUT_PATH" "$SMOKETEST_DIR_INSIDE/$TEST"
+  docker-compose exec -T "$CONTAINER" mkdir -p "$RESULT_DIR_INSIDE" \
+    && docker-compose exec -T -e SECURITY_ENABLED="${SECURITY_ENABLED}" -e OM_HA_PARAM="${OM_HA_PARAM}" -e OM_SERVICE_ID="${OM_SERVICE_ID}" "$CONTAINER" robot ${ARGUMENTS[@]} --log NONE -N "$TEST_NAME" --report NONE "${OZONE_ROBOT_OPTS[@]}" --output "$OUTPUT_PATH" "$SMOKETEST_DIR_INSIDE/$TEST"
   local -i rc=$?
 
-  FULL_CONTAINER_NAME=$(docker-compose -f "$COMPOSE_FILE" ps | grep "_${CONTAINER}_" | head -n 1 | awk '{print $1}')
+  FULL_CONTAINER_NAME=$(docker-compose ps | grep "_${CONTAINER}_" | head -n 1 | awk '{print $1}')
   docker cp "$FULL_CONTAINER_NAME:$OUTPUT_PATH" "$RESULT_DIR/"
+
+  if [[ "$OZONE_WITH_COVERAGE" ]]; then
+    JACOCO_CONTAINER_NAME=$(docker-compose ps | grep "_jacoco" | head -n 1 | awk '{print $1}')
+    docker cp "$JACOCO_CONTAINER_NAME:/tmp/jacoco-combined.exec" "$RESULT_DIR/"
+  fi
 
   copy_daemon_logs
 
@@ -124,7 +126,7 @@ execute_robot_test(){
 ## @description Copy any 'out' files for daemon processes to the result dir
 copy_daemon_logs() {
   local c f
-  for c in $(docker-compose -f "$COMPOSE_FILE" ps | grep "^${COMPOSE_ENV_NAME}_" | awk '{print $1}'); do
+  for c in $(docker-compose ps | grep "^${COMPOSE_ENV_NAME}_" | awk '{print $1}'); do
     for f in $(docker exec "${c}" ls -1 /var/log/hadoop | grep -F '.out'); do
       docker cp "${c}:/var/log/hadoop/${f}" "$RESULT_DIR/"
     done
@@ -138,7 +140,7 @@ copy_daemon_logs() {
 execute_command_in_container(){
   set -e
   # shellcheck disable=SC2068
-  docker-compose -f "$COMPOSE_FILE" exec -T "$@"
+  docker-compose exec -T "$@"
   set +e
 }
 
@@ -146,7 +148,7 @@ execute_command_in_container(){
 ## @param       List of container names, eg datanode_1 datanode_2
 stop_containers() {
   set -e
-  docker-compose -f "$COMPOSE_FILE" --no-ansi stop $@
+  docker-compose --no-ansi stop $@
   set +e
 }
 
@@ -155,7 +157,7 @@ stop_containers() {
 ## @param       List of container names, eg datanode_1 datanode_2
 start_containers() {
   set -e
-  docker-compose -f "$COMPOSE_FILE" --no-ansi start $@
+  docker-compose --no-ansi start $@
   set +e
 }
 
@@ -174,7 +176,7 @@ wait_for_port(){
 
   while [[ $SECONDS -lt $timeout ]]; do
      set +e
-     docker-compose -f "${COMPOSE_FILE}" exec -T scm /bin/bash -c "nc -z $host $port"
+     docker-compose exec -T scm /bin/bash -c "nc -z $host $port"
      status=$?
      set -e
      if [ $status -eq 0 ] ; then
@@ -191,9 +193,9 @@ wait_for_port(){
 
 ## @description  Stops a docker-compose based test environment (with saving the logs)
 stop_docker_env(){
-  docker-compose -f "$COMPOSE_FILE" --no-ansi logs > "$RESULT_DIR/docker-$OUTPUT_NAME.log"
+  docker-compose --no-ansi logs > "$RESULT_DIR/docker-$OUTPUT_NAME.log"
   if [ "${KEEP_RUNNING:-false}" = false ]; then
-     docker-compose -f "$COMPOSE_FILE" --no-ansi down
+     docker-compose --no-ansi down
   fi
 }
 
