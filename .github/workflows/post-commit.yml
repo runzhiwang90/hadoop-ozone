@@ -161,7 +161,7 @@ jobs:
         - uses: ./mnt/ozone/.github/buildenv
           with:
              args: ./mnt/ozone/hadoop-ozone/dev-support/checks/integration.sh -P${{ matrix.profile }}
-        - run: cat target/${{ github.job }}/summary.txt
+        - run: cat mnt/ozone/target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
