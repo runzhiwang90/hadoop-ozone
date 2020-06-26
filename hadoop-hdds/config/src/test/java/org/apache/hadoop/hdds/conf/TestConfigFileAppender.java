@@ -29,6 +29,7 @@ public class TestConfigFileAppender {
 
   @Test
   public void testInit() {
+    Assert.fail("ZZZ");
     ConfigFileAppender appender = new ConfigFileAppender();
 
     appender.init();

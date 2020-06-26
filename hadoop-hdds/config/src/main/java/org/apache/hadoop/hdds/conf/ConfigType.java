@@ -22,6 +22,7 @@ package org.apache.hadoop.hdds.conf;
  * <p>
  * AUTO means that the exact type will be identified based on the java type of
  * the configuration field.
+ * @author ZZZ
  */
 public enum ConfigType {
   AUTO,
