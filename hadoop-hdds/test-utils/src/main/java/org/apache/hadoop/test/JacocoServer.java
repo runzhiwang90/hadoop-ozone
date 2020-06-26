@@ -19,30 +19,33 @@ package org.apache.hadoop.test;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import org.jacoco.core.data.ExecutionData;
 import org.jacoco.core.data.ExecutionDataWriter;
+import org.jacoco.core.data.SessionInfo;
 import org.jacoco.core.runtime.RemoteControlReader;
-import org.jacoco.core.runtime.RemoteControlWriter;
 
 /**
  * Simple TPC server to collect all the Jacoco coverage data.
  */
 public final class JacocoServer {
 
-  private static int port = 6300;
+  private static final int PORT = 6300;
 
-  private static String destinationFile = "/tmp/jacoco-combined.exec";
+  private static final String DESTINATION_FILE = "/tmp/jacoco-combined.exec";
 
   private JacocoServer() {
   }
 
   @SuppressWarnings("checkstyle:EmptyStatement")
   public static void main(String[] args) throws IOException {
-    ExecutionDataWriter destination =
-        new ExecutionDataWriter(new FileOutputStream(destinationFile));
-    ServerSocket serverSocket = new ServerSocket(port);
+    ExecutionDataWriter destination = new SynchronizedExecutionDataWriter(
+        new FileOutputStream(DESTINATION_FILE));
+    @SuppressWarnings("java:S2095") // closed in shutdown hook
+    ServerSocket serverSocket = new ServerSocket(PORT);
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
         destination.flush();
@@ -56,12 +59,10 @@ public final class JacocoServer {
       final Socket socket = serverSocket.accept();
       new Thread(() -> {
         try {
-          RemoteControlWriter writer =
-              new RemoteControlWriter(socket.getOutputStream());
           RemoteControlReader reader =
               new RemoteControlReader(socket.getInputStream());
-          reader.setSessionInfoVisitor(destination::visitSessionInfo);
-          reader.setExecutionDataVisitor(destination::visitClassExecution);
+          reader.setSessionInfoVisitor(destination);
+          reader.setExecutionDataVisitor(destination);
           while (reader.read()) {
             ;//read until the end of the stream.
           }
@@ -78,6 +79,30 @@ public final class JacocoServer {
       }).start();
     }
 
+  }
+
+  @SuppressWarnings("java:S1185") // false warning about useless override
+  private static class SynchronizedExecutionDataWriter
+      extends ExecutionDataWriter {
+
+    SynchronizedExecutionDataWriter(OutputStream output) throws IOException {
+      super(output);
+    }
+
+    @Override
+    public synchronized void flush() throws IOException {
+      super.flush();
+    }
+
+    @Override
+    public synchronized void visitClassExecution(ExecutionData data) {
+      super.visitClassExecution(data);
+    }
+
+    @Override
+    public synchronized void visitSessionInfo(SessionInfo info) {
+      super.visitSessionInfo(info);
+    }
   }
 
 }
