@@ -45,6 +45,7 @@ jobs:
              args: ./hadoop-ozone/dev-support/checks/rat.sh
         - name: Summary of failures
           run: cat target/${{ github.job }}/summary.txt
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -60,6 +61,7 @@ jobs:
              args: ./hadoop-ozone/dev-support/checks/author.sh
         - name: Summary of failures
           run: cat target/${{ github.job }}/summary.txt
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -75,6 +77,7 @@ jobs:
              args: ./hadoop-ozone/dev-support/checks/unit.sh
         - name: Summary of failures
           run: cat target/${{ github.job }}/summary.txt
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -90,6 +93,7 @@ jobs:
              args: ./hadoop-ozone/dev-support/checks/checkstyle.sh
         - name: Summary of failures
           run: cat target/${{ github.job }}/summary.txt
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -105,6 +109,7 @@ jobs:
              args: ./hadoop-ozone/dev-support/checks/findbugs.sh
         - name: Summary of failures
           run: cat target/${{ github.job }}/summary.txt
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -168,6 +173,7 @@ jobs:
              args: ./mnt/ozone/hadoop-ozone/dev-support/checks/integration.sh -P${{ matrix.profile }}
         - name: Summary of failures
           run: cat mnt/ozone/target/${{ github.job }}/summary.txt
+          if: always()
         - uses: actions/upload-artifact@master
           if: always()
           with:
