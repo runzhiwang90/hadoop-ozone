@@ -43,7 +43,8 @@ jobs:
         - uses: ./.github/buildenv
           with:
              args: ./hadoop-ozone/dev-support/checks/rat.sh
-        - run: cat target/${{ github.job }}/summary.txt
+        - name: Summary of failures
+          run: cat target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -57,7 +58,8 @@ jobs:
         - uses: ./.github/buildenv
           with:
              args: ./hadoop-ozone/dev-support/checks/author.sh
-        - run: cat target/${{ github.job }}/summary.txt
+        - name: Summary of failures
+          run: cat target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -71,7 +73,8 @@ jobs:
         - uses: ./.github/buildenv
           with:
              args: ./hadoop-ozone/dev-support/checks/unit.sh
-        - run: cat target/${{ github.job }}/summary.txt
+        - name: Summary of failures
+          run: cat target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -85,7 +88,8 @@ jobs:
         - uses: ./.github/buildenv
           with:
              args: ./hadoop-ozone/dev-support/checks/checkstyle.sh
-        - run: cat target/${{ github.job }}/summary.txt
+        - name: Summary of failures
+          run: cat target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -99,7 +103,8 @@ jobs:
         - uses: ./.github/buildenv
           with:
              args: ./hadoop-ozone/dev-support/checks/findbugs.sh
-        - run: cat target/${{ github.job }}/summary.txt
+        - name: Summary of failures
+          run: cat target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
@@ -161,7 +166,8 @@ jobs:
         - uses: ./mnt/ozone/.github/buildenv
           with:
              args: ./mnt/ozone/hadoop-ozone/dev-support/checks/integration.sh -P${{ matrix.profile }}
-        - run: cat mnt/ozone/target/${{ github.job }}/summary.txt
+        - name: Summary of failures
+          run: cat mnt/ozone/target/${{ github.job }}/summary.txt
         - uses: actions/upload-artifact@master
           if: always()
           with:
