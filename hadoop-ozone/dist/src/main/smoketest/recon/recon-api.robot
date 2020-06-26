@@ -14,42 +14,39 @@
 # limitations under the License.
 
 *** Settings ***
-Documentation       Smoke test to start cluster with docker-compose environments.
+Documentation       Test for Recon API
 Library             OperatingSystem
 Library             String
 Library             BuiltIn
 Resource            ../commonlib.robot
+Suite Setup         Generate Freon data
 Test Timeout        5 minutes
 
 *** Variables ***
-${ENDPOINT_URL}       http://recon:9888
 ${API_ENDPOINT_URL}   http://recon:9888/api/v1
 
 *** Keywords ***
 Check if Recon picks up container from OM
     Run Keyword if      '${SECURITY_ENABLED}' == 'true'     Kinit HTTP user
-    ${result} =         Execute                             curl --negotiate -u : -v ${API_ENDPOINT_URL}/containers
+    ${result} =         Execute                             curl -Ss --negotiate -u : ${API_ENDPOINT_URL}/containers
                         Should contain      ${result}       \"ContainerID\":1
 
-    ${result} =         Execute                             curl --negotiate -u : -v ${API_ENDPOINT_URL}/utilization/fileCount
+    ${result} =         Execute                             curl -Ss --negotiate -u : ${API_ENDPOINT_URL}/utilization/fileCount
                         Should contain      ${result}       \"fileSize\":2048,\"count\":10
 
-*** Test Cases ***
 Generate Freon data
     Run Keyword if      '${SECURITY_ENABLED}' == 'true'     Kinit test user     testuser     testuser.keytab
                         Execute                             ozone freon rk --replicationType=RATIS --numOfVolumes 1 --numOfBuckets 1 --numOfKeys 10 --keySize 1025
 
-Check if Recon picks up OM data
-    Wait Until Keyword Succeeds     90sec      10sec        Check if Recon picks up container from OM
-
-Check if Recon picks up DN heartbeats
-    ${result} =         Execute                             curl --negotiate -u : -v ${API_ENDPOINT_URL}/datanodes
+Check if Recon picks up datanodes
+    ${result} =         Execute                             curl -Ss --negotiate -u : ${API_ENDPOINT_URL}/datanodes
                         Should contain      ${result}       datanodes
                         Should contain      ${result}       datanode_1
                         Should contain      ${result}       datanode_2
                         Should contain      ${result}       datanode_3
 
-    ${result} =         Execute                             curl --negotiate -u : -v ${API_ENDPOINT_URL}/pipelines
+Check if Recon picks up pipelines
+    ${result} =         Execute                             curl -Ss -negotiate -u : ${API_ENDPOINT_URL}/pipelines
                         Should contain      ${result}       pipelines
                         Should contain      ${result}       RATIS
                         Should contain      ${result}       OPEN
@@ -57,15 +54,29 @@ Check if Recon picks up DN heartbeats
                         Should contain      ${result}       datanode_2
                         Should contain      ${result}       datanode_3
 
-    ${result} =         Execute                             curl --negotiate -u : -v ${API_ENDPOINT_URL}/clusterState
+Check cluster state
+    ${result} =         Execute                             curl -Ss -negotiate -u : ${API_ENDPOINT_URL}/clusterState
                         Should contain      ${result}       \"totalDatanodes\":3
                         Should contain      ${result}       \"healthyDatanodes\":3
-                        Should contain      ${result}       \"pipelines\":4
+    ${pipelines} =      Execute                             echo '${result}' | jq -r '.pipelines'
+                        Execute                             test '${pipelines}' -ge 4
 
-    ${result} =         Execute                             curl --negotiate -u : -v ${API_ENDPOINT_URL}/containers/1/replicaHistory
+Check container
+    ${result} =         Execute                             curl -Ss --negotiate -u : ${API_ENDPOINT_URL}/containers/1/replicaHistory
                         Should contain      ${result}       \"containerId\":1
 
-Check if Recon Web UI is up
-    Run Keyword if      '${SECURITY_ENABLED}' == 'true'     Kinit HTTP user
-    ${result} =         Execute                             curl --negotiate -u : -v ${ENDPOINT_URL}
-                        Should contain      ${result}       Ozone Recon
+*** Test Cases ***
+Check if Recon picks up OM data
+    Wait Until Keyword Succeeds     90sec      2sec        Check if Recon picks up container from OM
+
+Check if Recon picks up datanodes
+    Wait Until Keyword Succeeds     90sec      2sec        Check if Recon picks up datanodes
+
+Check if Recon picks up pipelines
+    Wait Until Keyword Succeeds     90sec      2sec        Check if Recon picks up pipelines
+
+Check cluster state
+    Wait Until Keyword Succeeds     90sec      2sec        Check cluster state
+
+Check container
+    Wait Until Keyword Succeeds     90sec      2sec        Check container
