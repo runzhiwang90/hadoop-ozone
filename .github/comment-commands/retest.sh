@@ -25,6 +25,7 @@ code='```'
 
 pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
 commenter="$(jq -r '.comment.user.login' "${GITHUB_EVENT_PATH}")"
+assoc="$(jq -r '.comment.author_association' "${GITHUB_EVENT_PATH}")"
 
 curl -LSs "${pr_url}" -o pull.tmp
 source_repo="$(jq -r '.head.repo.ssh_url' pull.tmp)"
@@ -40,7 +41,7 @@ git commit --allow-empty -m 'trigger new CI check'
 git push
 ${code}
 EOF
-elif [[ "${maintainer_can_modify}" == "true" ]]; then
+elif [[ "${maintainer_can_modify}" == "true" ]] && [[ "${assoc}" == "MEMBER" -o "${assoc}" == "OWNER" ]]; then
   cat <<-EOF
 To re-run CI checks, please follow these steps:
 ${code}
