@@ -22,8 +22,9 @@
 set -eu
 set -x
 
-read -r pr_url commenter <<<$(jq -r '.issue.pull_request.url + " " + .comment.user.login' "${GITHUB_EVENT_PATH}")
-read -r source_repo branch pr_owner maintainer_can_modify <<<$(curl -Ss "${pr_url}" | jq -r '.head.repo.ssh_url + " " + .head.ref + " " + .head.user.login + " " + .maintainer_can_modify')
+pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
+commenter="$(jq -r '.comment.user.login' "${GITHUB_EVENT_PATH}")"
+read -d ';' -r source_repo branch pr_owner maintainer_can_modify <<<$(curl -Ss "${pr_url}" | jq -r '.head.repo.ssh_url, .head.ref, .head.user.login, .maintainer_can_modify | join(";")')
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
   MESSAGE=<<EOF
@@ -47,6 +48,8 @@ else
     git push
 EOF
 fi
+
+exit
 
 set +x #GITHUB_TOKEN
 
