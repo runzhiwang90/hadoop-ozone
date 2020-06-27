@@ -20,6 +20,7 @@
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token
 
 set -u
+set -x
 
 code='```'
 
@@ -33,29 +34,29 @@ pr_owner="$(jq -r '.head.user.login' pull.tmp)"
 maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
-  cat <<-EOF
-    To re-run CI checks, please follow these steps with the source branch checked out:
-    ${code}
-    git commit --allow-empty -m 'trigger new CI check'
-    git push
-    ${code}
+  cat <<-"EOF"
+To re-run CI checks, please follow these steps with the source branch checked out:
+```
+git commit --allow-empty -m 'trigger new CI check'
+git push
+```
 EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
   cat <<-EOF
-    To re-run CI checks, please follow these steps:
-    ${code}
-    git fetch "${source_repo}" "${branch}"
-    git checkout FETCH_HEAD
-    git commit --allow-empty -m 'trigger new CI check'
-    git push "${source_repo}" HEAD:"${branch}"
-    ${code}
+To re-run CI checks, please follow these steps:
+${code}
+git fetch "${source_repo}" "${branch}"
+git checkout FETCH_HEAD
+git commit --allow-empty -m 'trigger new CI check'
+git push "${source_repo}" HEAD:"${branch}"
+${code}
 EOF
 else
   cat <<-EOF
-    @${pr_owner} please trigger new CI check by following these steps:
-    ${code}
-    git commit --allow-empty -m 'trigger new CI check'
-    git push
-    ${code}
+@${pr_owner} please trigger new CI check by following these steps:
+${code}
+git commit --allow-empty -m 'trigger new CI check'
+git push
+${code}
 EOF
 fi
