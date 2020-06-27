@@ -22,6 +22,8 @@
 set -u
 set -x
 
+code='```'
+
 pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
 commenter="$(jq -r '.comment.user.login' "${GITHUB_EVENT_PATH}")"
 
@@ -32,40 +34,29 @@ pr_owner="$(jq -r '.head.user.login' pull.tmp)"
 maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
-  read -r -d '' MESSAGE <<-"EOF"
-  To re-run CI checks, please follow these steps with the source branch checked out:
-      git commit --allow-empty -m 'trigger new CI check'
-      git push
+  cat <<-"EOF"
+To re-run CI checks, please follow these steps with the source branch checked out:
+```
+git commit --allow-empty -m 'trigger new CI check'
+git push
+```
 EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
-  read -r -d '' MESSAGE <<-EOF
-  To re-run CI checks, please follow these steps:
-      git fetch "${source_repo}" "${branch}"
-      git checkout FETCH_HEAD
-
-      git commit --allow-empty -m 'trigger new CI check'
-      git push "${source_repo}" HEAD:"${branch}"
+  cat <<-EOF
+To re-run CI checks, please follow these steps:
+${code}
+git fetch "${source_repo}" "${branch}"
+git checkout FETCH_HEAD
+git commit --allow-empty -m 'trigger new CI check'
+git push "${source_repo}" HEAD:"${branch}"
+${code}
 EOF
 else
-  read -r -d '' MESSAGE <<-EOF
+  cat <<-EOF
 @${pr_owner} please trigger new CI check by following these steps:
-    git commit --allow-empty -m 'trigger new CI check'
-    git push
+${code}
+git commit --allow-empty -m 'trigger new CI check'
+git push
+${code}
 EOF
 fi
-
-echo ">>>${MESSAGE}<<<"
-exit
-
-if [[ -z "${MESSAGE}" ]]; then
-  exit 1
-fi
-
-set +x #GITHUB_TOKEN
-
-curl -s -o /dev/null \
-  -X POST \
-  --data "$(jq --arg body "${MESSAGE}" -n '{body: $body}')" \
-  --header "authorization: Bearer ${GITHUB_TOKEN}" \
-  --header 'content-type: application/json' \
-  "$(jq -r '.issue.comments_url' "${GITHUB_EVENT_PATH}")"
