@@ -22,38 +22,29 @@
 set -eu
 set -x
 
-read -r pr_url commenter <<<$(jq -r '.issue.pull_request.url + " " + .comment.user' "${GITHUB_EVENT_PATH}")
+read -r pr_url commenter <<<$(jq -r '.issue.pull_request.url + " " + .comment.user.login' "${GITHUB_EVENT_PATH}")
 read -r source_repo branch pr_owner maintainer_can_modify <<<$(curl -Ss "${pr_url}" | jq -r '.head.repo.ssh_url + " " + .head.ref + " " + .head.user.login + " " + .maintainer_can_modify')
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
-  MESSAGE=<<-EOF
+  MESSAGE=<<EOF
 To re-run CI checks, please follow these steps with the source branch checked out:
-
-```
-git commit --allow-empty -m 'trigger new CI check'
-git push
-```
+    git commit --allow-empty -m 'trigger new CI check'
+    git push
 EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
-  MESSAGE=<<-EOF
+  MESSAGE=<<EOF
 To re-run CI checks, please follow these steps:
+    git fetch "${source_repo}" "${branch}"
+    git checkout FETCH_HEAD
 
-```
-git fetch "${source_repo}" "${branch}"
-git checkout FETCH_HEAD
-
-git commit --allow-empty -m 'trigger new CI check'
-git push "${source_repo}" HEAD:"${branch}"
-```
+    git commit --allow-empty -m 'trigger new CI check'
+    git push "${source_repo}" HEAD:"${branch}"
 EOF
 else
   MESSAGE=<<-EOF
 @${pr_owner} please trigger new CI check by following these steps:
-
-```
-git commit --allow-empty -m 'trigger new CI check'
-git push
-```
+    git commit --allow-empty -m 'trigger new CI check'
+    git push
 EOF
 fi
 
