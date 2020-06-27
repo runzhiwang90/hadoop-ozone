@@ -25,13 +25,13 @@ code='```'
 
 pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
 commenter=asdf # "$(jq -r '.comment.user.login' "${GITHUB_EVENT_PATH}")"
-assoc=MEMBER # "$(jq -r '.comment.author_association' "${GITHUB_EVENT_PATH}")"
+assoc="$(jq -r '.comment.author_association' "${GITHUB_EVENT_PATH}")"
 
 curl -LSs "${pr_url}" -o pull.tmp
 source_repo="$(jq -r '.head.repo.ssh_url' pull.tmp)"
 branch="$(jq -r '.head.ref' pull.tmp)"
 pr_owner="$(jq -r '.head.user.login' pull.tmp)"
-maintainer_can_modify=true # "$(jq -r '.maintainer_can_modify' pull.tmp)"
+maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
   cat <<-EOF
