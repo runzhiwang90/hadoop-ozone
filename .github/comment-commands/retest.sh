@@ -36,7 +36,7 @@ if [[ "${commenter}" == "${pr_owner}" ]]; then
   To re-run CI checks, please follow these steps with the source branch checked out:
       git commit --allow-empty -m 'trigger new CI check'
       git push
-  EOF
+EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
   read -r -d '' MESSAGE <<-EOF
   To re-run CI checks, please follow these steps:
@@ -45,13 +45,13 @@ elif [[ "${maintainer_can_modify}" == "true" ]]; then
 
       git commit --allow-empty -m 'trigger new CI check'
       git push "${source_repo}" HEAD:"${branch}"
-  EOF
+EOF
 else
   read -r -d '' MESSAGE <<-EOF
 @${pr_owner} please trigger new CI check by following these steps:
     git commit --allow-empty -m 'trigger new CI check'
     git push
-  EOF
+EOF
 fi
 
 echo ">>>${MESSAGE}<<<"
