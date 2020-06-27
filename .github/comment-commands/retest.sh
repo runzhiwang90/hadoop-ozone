@@ -41,7 +41,7 @@ git commit --allow-empty -m 'trigger new CI check'
 git push
 ${code}
 EOF
-elif [[ "${assoc}" == "OWNER" ]] || [[ "${maintainer_can_modify}" == "true" ]] && [[ "${assoc}" == "MEMBER" ]]; then
+elif [[ "${maintainer_can_modify}" == "true" ]] && [[ "${assoc}" == "MEMBER" ]] || [[ "${assoc}" == "OWNER" ]]; then
   cat <<-EOF
 To re-run CI checks, please follow these steps:
 ${code}
