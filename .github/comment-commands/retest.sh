@@ -19,8 +19,7 @@
 # posting a new commit from this script does not trigger CI checks
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token
 
-set -u
-set -x
+set -eu
 
 code='```'
 
@@ -34,12 +33,12 @@ pr_owner="$(jq -r '.head.user.login' pull.tmp)"
 maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
-  cat <<-"EOF"
+  cat <<-EOF
 To re-run CI checks, please follow these steps with the source branch checked out:
-```
+${code}
 git commit --allow-empty -m 'trigger new CI check'
 git push
-```
+${code}
 EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
   cat <<-EOF
