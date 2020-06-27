@@ -25,7 +25,7 @@ code='```'
 
 pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
 commenter=asdf # "$(jq -r '.comment.user.login' "${GITHUB_EVENT_PATH}")"
-assoc="$(jq -r '.comment.author_association' "${GITHUB_EVENT_PATH}")"
+assoc=MEMBER # "$(jq -r '.comment.author_association' "${GITHUB_EVENT_PATH}")"
 
 curl -LSs "${pr_url}" -o pull.tmp
 source_repo="$(jq -r '.head.repo.ssh_url' pull.tmp)"
