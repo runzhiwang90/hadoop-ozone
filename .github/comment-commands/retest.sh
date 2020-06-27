@@ -19,7 +19,7 @@
 # posting a new commit from this script does not trigger CI checks
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token
 
-set -eu
+set -u
 set -x
 
 pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
@@ -33,26 +33,29 @@ maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
   read -r -d '' MESSAGE <<-"EOF"
-To re-run CI checks, please follow these steps with the source branch checked out:
-    git commit --allow-empty -m 'trigger new CI check'
-    git push
-EOF
+  To re-run CI checks, please follow these steps with the source branch checked out:
+      git commit --allow-empty -m 'trigger new CI check'
+      git push
+  EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
   read -r -d '' MESSAGE <<-EOF
-To re-run CI checks, please follow these steps:
-    git fetch "${source_repo}" "${branch}"
-    git checkout FETCH_HEAD
+  To re-run CI checks, please follow these steps:
+      git fetch "${source_repo}" "${branch}"
+      git checkout FETCH_HEAD
 
-    git commit --allow-empty -m 'trigger new CI check'
-    git push "${source_repo}" HEAD:"${branch}"
-EOF
+      git commit --allow-empty -m 'trigger new CI check'
+      git push "${source_repo}" HEAD:"${branch}"
+  EOF
 else
   read -r -d '' MESSAGE <<-EOF
 @${pr_owner} please trigger new CI check by following these steps:
     git commit --allow-empty -m 'trigger new CI check'
     git push
-EOF
+  EOF
 fi
+
+echo ">>>${MESSAGE}<<<"
+exit
 
 if [[ -z "${MESSAGE}" ]]; then
   exit 1
