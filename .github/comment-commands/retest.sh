@@ -14,20 +14,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#doc: add new empty commit to trigger new CI build
-set +x #GITHUB_TOKEN
+#doc: provide help on how to trigger new CI build
 
-PR_URL=$(jq -r '.issue.pull_request.url' "$GITHUB_EVENT_PATH")
-read -r REPO_URL BRANCH <<<"$(curl "$PR_URL" | jq -r '.head.repo.clone_url + " " + .head.ref' | sed "s/github.com/$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/g")"
+# posting a new commit from this script does not trigger CI checks
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token
 
-git fetch "$REPO_URL" "$BRANCH"
+set -eu
+set -x
+
+read -r pr_url commenter <<<$(jq -r '.issue.pull_request.url + " " + .comment.user' "${GITHUB_EVENT_PATH}")
+read -r source_repo branch pr_owner maintainer_can_modify <<<$(curl -Ss "${pr_url}" | jq -r '.head.repo.ssh_url + " " + .head.ref + " " + .head.user.login + " " + .maintainer_can_modify')
+
+if [[ "${commenter}" == "${pr_owner}" ]]; then
+  MESSAGE=<<-EOF
+To re-run CI checks, please follow these steps with the source branch checked out:
+
+```
+git commit --allow-empty -m 'trigger new CI check'
+git push
+```
+EOF
+elif [[ "${maintainer_can_modify}" == "true" ]]; then
+  MESSAGE=<<-EOF
+To re-run CI checks, please follow these steps:
+
+```
+git fetch "${source_repo}" "${branch}"
 git checkout FETCH_HEAD
 
-export GIT_COMMITTER_EMAIL="noreply@github.com"
-export GIT_COMMITTER_NAME="GitHub actions"
+git commit --allow-empty -m 'trigger new CI check'
+git push "${source_repo}" HEAD:"${branch}"
+```
+EOF
+else
+  MESSAGE=<<-EOF
+@${pr_owner} please trigger new CI check by following these steps:
 
-export GIT_AUTHOR_EMAIL="noreply@github.com"
-export GIT_AUTHOR_NAME="GitHub actions"
+```
+git commit --allow-empty -m 'trigger new CI check'
+git push
+```
+EOF
+fi
 
-git commit --allow-empty -m "empty commit to retest build" > /dev/null
-git push $REPO_URL HEAD:$BRANCH
+set +x #GITHUB_TOKEN
+
+curl -s -o /dev/null \
+  -X POST \
+  --data "$(jq --arg body "${MESSAGE}" -n '{body: $body}')" \
+  --header "authorization: Bearer ${GITHUB_TOKEN}" \
+  --header 'content-type: application/json' \
+  "$(jq -r '.issue.comments_url' "${GITHUB_EVENT_PATH}")"
