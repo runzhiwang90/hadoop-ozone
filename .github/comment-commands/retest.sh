@@ -24,7 +24,12 @@ set -x
 
 pr_url="$(jq -r '.issue.pull_request.url' "${GITHUB_EVENT_PATH}")"
 commenter="$(jq -r '.comment.user.login' "${GITHUB_EVENT_PATH}")"
-read -d '|' -r source_repo branch pr_owner maintainer_can_modify <<<$(curl -Ss "${pr_url}" | jq -r '[.head.repo.ssh_url, .head.ref, .head.user.login, .maintainer_can_modify] | join("|")')
+
+curl -LSs "${pr_url}" -o pull.tmp
+source_repo="$(jq -r '.head.repo.ssh_url' pull.tmp)"
+branch="$(jq -r '.head.ref' pull.tmp)"
+pr_owner="$(jq -r '.head.user.login' pull.tmp)"
+maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
   MESSAGE=<<EOF
