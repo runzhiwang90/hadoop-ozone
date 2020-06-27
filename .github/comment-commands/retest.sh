@@ -32,13 +32,13 @@ pr_owner="$(jq -r '.head.user.login' pull.tmp)"
 maintainer_can_modify="$(jq -r '.maintainer_can_modify' pull.tmp)"
 
 if [[ "${commenter}" == "${pr_owner}" ]]; then
-  read -r -d '' MESSAGE <<"EOF"
+  read -r -d '' MESSAGE <<-"EOF"
 To re-run CI checks, please follow these steps with the source branch checked out:
     git commit --allow-empty -m 'trigger new CI check'
     git push
 EOF
 elif [[ "${maintainer_can_modify}" == "true" ]]; then
-  read -r -d '' MESSAGE <<EOF
+  read -r -d '' MESSAGE <<-EOF
 To re-run CI checks, please follow these steps:
     git fetch "${source_repo}" "${branch}"
     git checkout FETCH_HEAD
@@ -47,7 +47,7 @@ To re-run CI checks, please follow these steps:
     git push "${source_repo}" HEAD:"${branch}"
 EOF
 else
-  read -r -d '' MESSAGE <<EOF
+  read -r -d '' MESSAGE <<-EOF
 @${pr_owner} please trigger new CI check by following these steps:
     git commit --allow-empty -m 'trigger new CI check'
     git push
