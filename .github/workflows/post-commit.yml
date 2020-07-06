@@ -17,7 +17,6 @@ on:
   push:
 jobs:
   integration:
-    name: integration
     runs-on: ubuntu-18.04
     steps:
         - run: sudo mkdir mnt && sudo mount --bind /mnt `pwd`/mnt && sudo chmod 777 mnt
@@ -26,8 +25,9 @@ jobs:
             path: mnt/ozone
         - uses: ./mnt/ozone/.github/buildenv
           with:
-             args: ./mnt/ozone/hadoop-ozone/dev-support/checks/integration.sh -DfailIfNoTests=false -Dtest=TestBlockDeletion,TestBlockDeletingService
+            args: ./mnt/ozone/hadoop-ozone/dev-support/checks/junit.sh -DfailIfNoTests=false -Dtest=TestBlockDeletion,TestBlockDeletingService
           env:
+            CHECK: integration
             ITERATIONS: 20
         - uses: actions/upload-artifact@master
           if: always()
