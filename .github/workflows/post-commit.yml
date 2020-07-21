@@ -121,8 +121,6 @@ jobs:
     strategy:
       matrix:
         suite:
-          - HA
-          - hadoop
           - misc
           - secure
           - unsecure
