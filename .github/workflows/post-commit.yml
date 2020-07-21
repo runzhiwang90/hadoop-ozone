@@ -179,9 +179,6 @@ jobs:
         profile:
           - client
           - filesystem
-          - filesystem-contract
-          - freon
-          - hdds-om
           - ozone
       fail-fast: false
     steps:
