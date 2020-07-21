@@ -31,10 +31,16 @@ if [ "$OZONE_WITH_COVERAGE" ]; then
    export HADOOP_OPTS="-javaagent:share/coverage/jacoco-agent.jar=output=tcpclient,address=$DOCKER_BRIDGE_IP,includes=org.apache.hadoop.ozone.*:org.apache.hadoop.hdds.*:org.apache.hadoop.fs.ozone.*"
 fi
 
-RESULT=0
 IFS=$'\n'
+if [[ -n "${OZONE_ACCEPTANCE_SUITE}" ]]; then
+  tests=$(find "$SCRIPT_DIR" -name test.sh | xargs grep -l "^#suite:${OZONE_ACCEPTANCE_SUITE}$" | sort)
+else
+  tests=$(find "$SCRIPT_DIR" -name test.sh | grep "${OZONE_TEST_SELECTOR:-""}" | sort)
+fi
+
+RESULT=0
 # shellcheck disable=SC2044
-for test in $(find "$SCRIPT_DIR" -name test.sh | grep "${OZONE_TEST_SELECTOR:-""}" |sort); do
+for test in "${tests}"; do
   echo "Executing test in $(dirname "$test")"
 
   #required to read the .env file from the right location
