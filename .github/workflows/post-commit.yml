@@ -178,7 +178,7 @@ jobs:
       matrix:
         profile:
           - client
-          - filesystem
+          - filesystem-hdds
           - ozone
       fail-fast: false
     steps:

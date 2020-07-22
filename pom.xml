@@ -2163,7 +2163,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       </build>
     </profile>
     <profile>
-      <id>filesystem</id>
+      <id>filesystem-hdds</id>
       <build>
         <plugins>
           <plugin>
@@ -2172,6 +2172,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
             <configuration>
               <includes>
                 <include>org.apache.hadoop.fs.ozone.**</include>
+                <include>org.apache.hadoop.hdds.**</include>
               </includes>
             </configuration>
           </plugin>
@@ -2187,7 +2188,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
             <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
               <includes>
-                <include>org.apache.hadoop.hdds.**</include>
                 <include>org.apache.hadoop.ozone.**</include>
               </includes>
               <excludes>
