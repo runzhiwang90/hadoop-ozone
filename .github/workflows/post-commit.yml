@@ -172,8 +172,6 @@ jobs:
   integration:
     name: integration
     runs-on: ubuntu-18.04
-    needs:
-        - build
     strategy:
       matrix:
         profile:
